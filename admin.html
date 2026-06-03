@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <script src="js/security.js"></script>
+    <script src="js/security.js?v=2"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard - Didi's Biryani</title>
@@ -1824,6 +1824,10 @@
               </button>
             </div>
           </div>
+          <div id="admin-preparation-summary" class="mb-6 bg-white/5 border border-white/10 rounded-2xl p-4 hidden">
+            <h3 class="text-brand-gold font-bold mb-3 flex items-center gap-2"><i data-lucide="chef-hat" class="w-5 h-5"></i> Preparation Summary (Active Orders)</h3>
+            <div id="preparation-summary-list" class="flex flex-wrap gap-3"></div>
+          </div>
           <div
             id="admin-orders-list"
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -2151,7 +2155,7 @@
         <!-- Order History Detail Modal -->
         <div
           id="history-detail-modal"
-          class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4"
+          class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] hidden items-center justify-center p-4"
         >
           <div
             class="bg-[#111] border border-white/10 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto hide-scrollbar shadow-[0_0_50px_rgba(0,0,0,0.8)] p-6 md:p-8 relative"
@@ -2997,6 +3001,28 @@
                       </option>
                       <option value="closed">🔴 Store is Closed</option>
                     </select>
+                  </div>
+                  <div>
+                    <label
+                      class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-wider mb-2"
+                      >Auto Open Time</label
+                    >
+                    <input
+                      type="time"
+                      id="settingsAutoOpenTime"
+                      class="w-full bg-[#111] border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-brand-gold"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-wider mb-2"
+                      >Auto Close Time</label
+                    >
+                    <input
+                      type="time"
+                      id="settingsAutoCloseTime"
+                      class="w-full bg-[#111] border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-brand-gold"
+                    />
                   </div>
                   <div>
                     <label
@@ -4474,7 +4500,7 @@
     <!-- Order Rejection Reason Modal -->
     <div
       id="reject-reason-modal"
-      class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[200] hidden items-center justify-center p-4"
+      class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[500] hidden items-center justify-center p-4"
     >
       <div
         class="bg-[#141414] border border-brand-gold/30 rounded-3xl w-full max-w-md overflow-hidden shadow-[0_0_50px_rgba(212, 160, 23,0.15)] flex flex-col animate-fade-in"
@@ -4563,7 +4589,7 @@
     <!-- Edit Order Details Modal -->
     <div
       id="edit-order-modal"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] hidden items-center justify-center p-4"
     >
       <div
         class="glass border border-brand-gold/20 rounded-3xl w-full max-w-lg overflow-hidden shadow-[0_0_50px_rgba(212, 160, 23,0.15)] animate-slide-up relative"
@@ -4668,7 +4694,7 @@
     <!-- Rejected Orders Modal -->
     <div
       id="rejected-orders-modal"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] hidden items-center justify-center p-4"
     >
       <div
         class="glass border border-red-500/30 rounded-3xl w-full max-w-4xl overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-slide-up relative flex flex-col max-h-[90vh]"
@@ -4734,7 +4760,7 @@
     <!-- Credit All Wallets Modal -->
     <div
       id="credit-all-modal"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] hidden items-center justify-center p-4"
     >
       <div
         class="glass border border-brand-gold/20 rounded-3xl w-full max-w-md overflow-hidden shadow-[0_0_50px_rgba(212, 160, 23,0.15)] animate-slide-up relative"
@@ -4811,7 +4837,7 @@
     <!-- Gift Wallet Modal -->
     <div
       id="gift-wallet-modal"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] hidden items-center justify-center p-4"
     >
       <div
         class="glass border border-brand-gold/20 rounded-3xl w-full max-w-md overflow-hidden shadow-[0_0_50px_rgba(212, 160, 23,0.15)] animate-slide-up relative"
@@ -4897,7 +4923,7 @@
     <!-- Manual Order Customization Modal -->
     <div
       id="manual-customization-modal"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] hidden items-center justify-center p-4"
     >
       <div
         class="glass border border-brand-gold/20 rounded-3xl w-full max-w-lg overflow-hidden shadow-[0_0_50px_rgba(212, 160, 23,0.15)] animate-slide-up relative"
@@ -4997,6 +5023,6 @@
     <script type="module" src="js/toast.js"></script>
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/printer-helper.js"></script>
-    <script type="module" src="js/admin.js"></script>
+    <script type="module" src="js/admin.js?v=2"></script>
   </body>
 </html>
