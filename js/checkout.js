@@ -1018,7 +1018,22 @@ onSnapshot(doc(db, "storeSettings", "info"), (docSnap) => {
         ...data
     };
 
-    const mode = data.storeMode || (data.isOnline ? 'open' : 'closed');
+    let mode = data.storeMode || (data.isOnline ? 'open' : 'closed');
+    if (data.autoOpenTime && data.autoCloseTime) {
+        const now = new Date();
+        const currentStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        let isInsideWindow = false;
+        if (data.autoOpenTime <= data.autoCloseTime) {
+            isInsideWindow = currentStr >= data.autoOpenTime && currentStr < data.autoCloseTime;
+        } else {
+            isInsideWindow = currentStr >= data.autoOpenTime || currentStr < data.autoCloseTime;
+        }
+        if (!isInsideWindow) {
+            mode = 'closed';
+        } else if (mode === 'closed') {
+            mode = 'open';
+        }
+    }
     if (mode === 'closed' || mode === 'paused') {
         alert("The restaurant is currently offline. You cannot place an order at this time.");
         window.location.replace("index.html");
@@ -1065,7 +1080,22 @@ onSnapshot(doc(db, "storeSettings", "info"), (docSnap) => {
 
 // Final Order Placement
 window.submitOrderDirect = async () => {
-    const mode = currentStoreSettings.storeMode || (currentStoreSettings.isOnline ? 'open' : 'closed');
+    let mode = currentStoreSettings.storeMode || (currentStoreSettings.isOnline ? 'open' : 'closed');
+    if (currentStoreSettings.autoOpenTime && currentStoreSettings.autoCloseTime) {
+        const now = new Date();
+        const currentStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        let isInsideWindow = false;
+        if (currentStoreSettings.autoOpenTime <= currentStoreSettings.autoCloseTime) {
+            isInsideWindow = currentStr >= currentStoreSettings.autoOpenTime && currentStr < currentStoreSettings.autoCloseTime;
+        } else {
+            isInsideWindow = currentStr >= currentStoreSettings.autoOpenTime || currentStr < currentStoreSettings.autoCloseTime;
+        }
+        if (!isInsideWindow) {
+            mode = 'closed';
+        } else if (mode === 'closed') {
+            mode = 'open';
+        }
+    }
     if (mode === 'closed' || mode === 'paused') {
         showToast("The restaurant is currently offline. You cannot place an order at this time.", "error");
         return;
@@ -1184,8 +1214,9 @@ window.submitOrderDirect = async () => {
             orderData.paymentId = 'WALLET-' + new Date().getTime();
 
             // 1. Create order doc
-            await addDoc(collection(db, "orders"), orderData);
+            const docRef = await addDoc(collection(db, "orders"), orderData);
             sendTelegramNotification(orderData);
+            fetch('/api/notify-admin', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
             // 2. Deduct wallet balance from user profile
             await consumeWalletEntries(currentUser.uid, walletAppliedAmount);
@@ -1212,8 +1243,9 @@ window.submitOrderDirect = async () => {
     // SCENARIO 2: COD Order
     if (selectedPayment === 'cod') {
         try {
-            await addDoc(collection(db, "orders"), orderData);
+            const docRef = await addDoc(collection(db, "orders"), orderData);
             sendTelegramNotification(orderData);
+            fetch('/api/notify-admin', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
             // Deduct wallet balance if any was applied
             if (walletAppliedAmount > 0) {
@@ -1276,8 +1308,9 @@ window.submitOrderDirect = async () => {
 
                     // 2. Save to Firestore only if capture was successful
                     showToast("Payment Captured! Saving order...", "success");
-                    await addDoc(collection(db, "orders"), orderData);
+                    const docRef = await addDoc(collection(db, "orders"), orderData);
                     sendTelegramNotification(orderData);
+                    fetch('/api/notify-admin', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
                     // Deduct wallet balance if any was applied
                     if (walletAppliedAmount > 0) {

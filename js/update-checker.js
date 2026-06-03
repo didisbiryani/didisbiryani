@@ -50,14 +50,32 @@ function initUpdateChecker() {
 
                     if (modal && versionText && downloadBtn) {
                         versionText.innerText = latestVersion;
-                        downloadBtn.href = downloadUrl;
                         
-                        if (downloadUrl.includes('play.google.com')) {
-                            downloadBtn.removeAttribute('download');
-                            downloadBtn.target = '_blank';
-                        } else {
-                            downloadBtn.setAttribute('download', 'didis_biryani_update.apk');
-                        }
+                        // Remove any download attribute - it breaks WebView!
+                        downloadBtn.removeAttribute('download');
+                        downloadBtn.removeAttribute('target');
+                        downloadBtn.href = '#';
+                        
+                        downloadBtn.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Method 1: Try the native Android bridge
+                            if (window.AndroidBridge && typeof window.AndroidBridge.openUrlInBrowser === 'function') {
+                                window.AndroidBridge.openUrlInBrowser(downloadUrl);
+                                return;
+                            }
+                            
+                            // Method 2: Use intent:// URL scheme for Android WebView
+                            try {
+                                const cleanUrl = downloadUrl.replace(/^https?:\/\//, '');
+                                const intentUrl = 'intent://' + cleanUrl + '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+                                window.location.href = intentUrl;
+                            } catch(err) {
+                                // Method 3: Direct navigation as last resort
+                                window.location.href = downloadUrl;
+                            }
+                        };
                         
                         modal.classList.remove('hidden');
                         modal.classList.add('flex');

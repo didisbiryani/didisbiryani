@@ -200,6 +200,22 @@ function updateStoreStatusUI() {
     if (mainAddrEl) mainAddrEl.innerText = currentStoreSettings.address;
 
     const mode = currentStoreSettings.storeMode || (currentStoreSettings.isOnline ? 'open' : 'closed');
+    let effectiveMode = mode;
+    if (currentStoreSettings.autoOpenTime && currentStoreSettings.autoCloseTime) {
+        const now = new Date();
+        const currentStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        let isInsideWindow = false;
+        if (currentStoreSettings.autoOpenTime <= currentStoreSettings.autoCloseTime) {
+            isInsideWindow = currentStr >= currentStoreSettings.autoOpenTime && currentStr < currentStoreSettings.autoCloseTime;
+        } else {
+            isInsideWindow = currentStr >= currentStoreSettings.autoOpenTime || currentStr < currentStoreSettings.autoCloseTime;
+        }
+        if (!isInsideWindow) {
+            effectiveMode = 'closed';
+        } else if (effectiveMode === 'closed') {
+            effectiveMode = 'open';
+        }
+    }
 
     // Mode label mapping
     const modeLabels = {
@@ -209,19 +225,19 @@ function updateStoreStatusUI() {
         'closed': { short: 'Store Closed', long: '🔴 Store is Closed', color: 'red', borderClass: 'border-red-500', textClass: 'text-red-500', hoverClass: 'hover:bg-red-500' }
     };
 
-    const ml = modeLabels[mode] || modeLabels['open'];
+    const ml = modeLabels[effectiveMode] || modeLabels['open'];
 
     if (btnEl) {
         btnEl.innerText = ml.short;
         btnEl.className = `flex-1 py-1.5 border ${ml.borderClass} ${ml.textClass} rounded-lg text-xs font-bold ${ml.hoverClass} hover:text-white transition-colors`;
     }
     if (cardEl) {
-        if (mode === 'open') cardEl.classList.remove('opacity-50');
+        if (effectiveMode === 'open') cardEl.classList.remove('opacity-50');
         else cardEl.classList.add('opacity-50');
     }
 
     if (mainCardEl) {
-        if (mode === 'open') mainCardEl.classList.remove('opacity-50');
+        if (effectiveMode === 'open') mainCardEl.classList.remove('opacity-50');
         else mainCardEl.classList.add('opacity-50');
     }
 
@@ -238,6 +254,8 @@ function updateStoreStatusUI() {
 
     // Populate operational settings inputs if they exist in the settings tab
     const settingsStoreMode = document.getElementById('settingsStoreModeSelect');
+    const settingsAutoOpenTime = document.getElementById('settingsAutoOpenTime');
+    const settingsAutoCloseTime = document.getElementById('settingsAutoCloseTime');
     const settingsAssignMode = document.getElementById('settingsAssignmentModeSelect');
     const settingsAddr = document.getElementById('settingsStoreAddress');
     const settingsAllowedCities = document.getElementById('settingsAllowedCities');
@@ -251,6 +269,8 @@ function updateStoreStatusUI() {
     const settingsDeliveryUpiId = document.getElementById('settingsDeliveryUpiId');
 
     if (settingsStoreMode) settingsStoreMode.value = mode;
+    if (settingsAutoOpenTime) settingsAutoOpenTime.value = currentStoreSettings.autoOpenTime || '';
+    if (settingsAutoCloseTime) settingsAutoCloseTime.value = currentStoreSettings.autoCloseTime || '';
     if (settingsAssignMode) settingsAssignMode.value = currentStoreSettings.assignmentMode || 'manual';
     const settingsAutoPrintSelect = document.getElementById('settingsAutoPrintSelect');
     if (settingsAutoPrintSelect) settingsAutoPrintSelect.value = currentStoreSettings.autoPrint === true ? 'true' : 'false';
@@ -545,6 +565,7 @@ window.addOption = (gIdx) => {
     div.innerHTML = `
         <input type="text" placeholder="Option Name" class="flex-1 bg-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none opt-name-input">
         <input type="number" placeholder="+₹0" class="w-20 bg-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none opt-price-input">
+        <input type="number" placeholder="Max (e.g. 1)" class="w-24 bg-white/10 rounded px-2 py-1 text-xs text-brand-gold focus:outline-none opt-limit-input" title="Max selection limit for this option">
     `;
     container.appendChild(div);
 };
@@ -601,8 +622,9 @@ document.getElementById('add-menu-form').addEventListener('submit', async (e) =>
             optionRows.forEach(row => {
                 const optName = row.querySelector('.opt-name-input').value.trim();
                 const optPrice = Number(row.querySelector('.opt-price-input').value) || 0;
+                const optLimit = parseInt(row.querySelector('.opt-limit-input').value) || 0;
                 if (optName !== '') {
-                    options.push({ name: optName, price: optPrice });
+                    options.push({ name: optName, price: optPrice, limit: optLimit });
                 }
             });
 
@@ -754,6 +776,7 @@ window.editMenuItem = (id) => {
                 if (lastRow) {
                     lastRow.querySelector('.opt-name-input').value = opt.name;
                     lastRow.querySelector('.opt-price-input').value = opt.price;
+                    if (opt.limit) lastRow.querySelector('.opt-limit-input').value = opt.limit;
                 }
             });
         });
@@ -959,6 +982,42 @@ function renderAdminOrders() {
         list.innerHTML = `<div class="col-span-full text-center py-16"><div class="text-5xl mb-4">📋</div><p class="text-brand-white/30 text-lg font-bold">No orders to show</p><p class="text-brand-white/20 text-sm mt-2">Orders will appear here as they come in.</p></div>`;
     }
 
+    const preparationStatuses = ['Pending', 'Accepted', 'Cooking'];
+    const prepMap = {};
+    activeOrders.forEach(o => {
+        if (preparationStatuses.includes(o.status)) {
+            (o.items || []).forEach(i => {
+                let key = i.name;
+                if (i.variantLabel) key += ` - ${i.variantLabel}`;
+                if (i.quantityLabel) key += ` [${i.quantityLabel}]`;
+                if (i.customizations) {
+                     const custStr = Object.values(i.customizations).join(', ');
+                     if (custStr) key += ` (${custStr})`;
+                }
+                if (!prepMap[key]) prepMap[key] = 0;
+                prepMap[key] += Number(i.quantity);
+            });
+        }
+    });
+
+    const prepContainer = document.getElementById('admin-preparation-summary');
+    const prepList = document.getElementById('preparation-summary-list');
+    if (prepContainer && prepList) {
+        const keys = Object.keys(prepMap);
+        if (keys.length > 0) {
+            prepContainer.classList.remove('hidden');
+            prepList.innerHTML = keys.map(k => `
+                <div class="bg-black/50 border border-brand-gold/30 rounded-lg px-3 py-2 flex items-center justify-between gap-3 flex-grow min-w-[200px]">
+                    <span class="text-sm font-bold text-brand-white">${escapeHTML(k)}</span>
+                    <span class="text-lg font-black text-brand-gold bg-brand-gold/10 px-2 py-0.5 rounded shadow-inner border border-brand-gold/20">${prepMap[k]}</span>
+                </div>
+            `).join('');
+        } else {
+            prepContainer.classList.add('hidden');
+            prepList.innerHTML = '';
+        }
+    }
+
     filteredOrders.forEach(o => {
         const dateStr = safeFormatDate(o.timestamp, 'short_date');
         const timeStr = safeFormatDate(o.timestamp, 'time');
@@ -1008,6 +1067,7 @@ function renderAdminOrders() {
                         <div class="flex items-center gap-2 mb-1 flex-wrap">
                             <h4 class="text-xl font-bold text-brand-white max-w-[120px] truncate">${o.customer}</h4>
                             <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${o.orderType === 'pickup' ? 'bg-blue-500/20 text-blue-500' : 'bg-brand-gold/20 text-brand-gold'} border border-current flex-shrink-0">${o.orderType === 'pickup' ? 'Pickup' : 'Delivery'}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${o.isManual ? 'bg-orange-500/20 text-orange-500 border-orange-500/30' : 'bg-green-500/20 text-green-500 border-green-500/30'} border flex-shrink-0">${o.isManual ? 'Manual' : 'Online'}</span>
                             ${o.paymentMethod === 'Cash on Delivery'
                 ? `<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-green-500/20 text-green-400 border border-green-500/50 flex-shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.2)]">💵 Collect Cash</span>`
                 : `<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-white/5 text-brand-white/40 border border-white/10 flex-shrink-0">Paid Online</span>`}
@@ -2285,6 +2345,8 @@ document.addEventListener('DOMContentLoaded', () => {
         opForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const storeMode = document.getElementById('settingsStoreModeSelect').value;
+            const autoOpenTime = document.getElementById('settingsAutoOpenTime') ? document.getElementById('settingsAutoOpenTime').value : '';
+            const autoCloseTime = document.getElementById('settingsAutoCloseTime') ? document.getElementById('settingsAutoCloseTime').value : '';
             const assignmentMode = document.getElementById('settingsAssignmentModeSelect').value;
             const address = document.getElementById('settingsStoreAddress').value.trim();
             const allowedCities = document.getElementById('settingsAllowedCities') ? document.getElementById('settingsAllowedCities').value.trim() : '';
@@ -2306,6 +2368,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 await setDoc(doc(db, "storeSettings", "info"), {
                     storeMode,
                     isOnline,
+                    autoOpenTime,
+                    autoCloseTime,
                     assignmentMode,
                     autoPrint,
                     address,
@@ -3560,20 +3624,22 @@ window.openManualCustomizationModal = (item) => {
         item.customizations.forEach(group => {
             let groupHtml = `
                 <div class="cust-group space-y-3" data-group-name="${group.name}">
-                    <h4 class="text-xs font-bold text-brand-white/70 uppercase tracking-widest border-b border-white/5 pb-2">${group.name}</h4>
+                    <h4 class="text-xs font-bold text-brand-white/70 uppercase tracking-widest border-b border-white/5 pb-2">
+                        ${group.name}
+                    </h4>
                     <div class="space-y-2">
             `;
             group.options.forEach(opt => {
                 groupHtml += `
                     <div class="flex items-center justify-between gap-4 p-3 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
                         <div>
-                            <span class="text-xs font-bold text-white">${opt.name}</span>
+                            <span class="text-xs font-bold text-white">${opt.name} ${opt.limit ? `<span class="text-brand-gold text-[10px] ml-1 lowercase">(Max ${opt.limit})</span>` : ''}</span>
                             <span class="text-[10px] text-brand-gold block font-semibold">+₹${opt.price}</span>
                         </div>
                         <div class="flex items-center gap-2 bg-black/50 border border-white/10 rounded px-2 py-1">
                             <button onclick="updateManualAddonQty(this, -1)" class="text-white/50 hover:text-brand-gold text-xs px-1">-</button>
                             <span class="text-white font-bold text-xs w-4 text-center manual-addon-qty" 
-                                data-name="${opt.name}" data-price="${opt.price}">0</span>
+                                data-name="${opt.name}" data-price="${opt.price}" data-limit="${opt.limit || 0}">0</span>
                             <button onclick="updateManualAddonQty(this, 1)" class="text-white/50 hover:text-brand-gold text-xs px-1">+</button>
                         </div>
                     </div>
@@ -3619,6 +3685,17 @@ window.selectManualVariant = (radioEl) => {
 window.updateManualAddonQty = (btnEl, change) => {
     const qtySpan = btnEl.parentElement.querySelector('.manual-addon-qty');
     let qty = parseInt(qtySpan.innerText) || 0;
+
+    if (change > 0) {
+        const limit = parseInt(qtySpan.getAttribute('data-limit')) || 0;
+        if (limit > 0) {
+            if (qty + change > limit) {
+                showToast(`You can only select up to ${limit} of this option.`, 'error');
+                return;
+            }
+        }
+    }
+
     qty += change;
     if (qty < 0) qty = 0;
     qtySpan.innerText = qty;

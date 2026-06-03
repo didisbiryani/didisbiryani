@@ -1035,10 +1035,10 @@ window.openCustomizationModal = (id) => {
                         <div class="flex items-center gap-3">
                             <div class="flex items-center gap-2 bg-brand-black border border-white/20 rounded-lg p-1">
                                 <button type="button" onclick="updateCustQty(this, -1)" class="w-6 h-6 rounded bg-brand-gold text-brand-black flex items-center justify-center font-bold hover:bg-white transition-colors">-</button>
-                                <span class="cust-qty text-brand-white font-bold w-4 text-center text-xs" data-name="${opt.name}" data-price="${opt.price}">0</span>
+                                <span class="cust-qty text-brand-white font-bold w-4 text-center text-xs" data-name="${opt.name}" data-price="${opt.price}" data-limit="${opt.limit || 0}">0</span>
                                 <button type="button" onclick="updateCustQty(this, 1)" class="w-6 h-6 rounded bg-brand-gold text-brand-black flex items-center justify-center font-bold hover:bg-white transition-colors">+</button>
                             </div>
-                            <span class="text-sm text-brand-white/80 font-medium ml-1">${opt.name}</span>
+                            <span class="text-sm text-brand-white/80 font-medium ml-1">${opt.name} ${opt.limit ? `<span class="text-brand-gold text-[10px] ml-1 lowercase">(Max ${opt.limit})</span>` : ''}</span>
                         </div>
                         <span class="text-sm text-brand-white/50 font-bold">${opt.price > 0 ? '+₹'+opt.price : 'Free'}</span>
                     </div>
@@ -1058,6 +1058,21 @@ window.openCustomizationModal = (id) => {
 window.updateCustQty = (btn, delta) => {
     const span = btn.parentElement.querySelector('.cust-qty');
     let qty = parseInt(span.innerText) || 0;
+    
+    if (delta > 0) {
+        const limit = parseInt(span.getAttribute('data-limit')) || 0;
+        if (limit > 0) {
+            if (qty + delta > limit) {
+                if (typeof window.showToast === 'function') {
+                    window.showToast(`You can only select up to ${limit} of this option.`, 'error');
+                } else {
+                    alert(`You can only select up to ${limit} of this option.`);
+                }
+                return;
+            }
+        }
+    }
+
     qty += delta;
     if (qty < 0) qty = 0;
     span.innerText = qty;
@@ -1892,14 +1907,20 @@ async function initApp() {
                         downloadBtn.href = "#";
                         downloadBtn.onclick = (e) => {
                             e.preventDefault();
-                            if (window.AndroidBridge && window.AndroidBridge.forceOpenExternalBrowser) {
-                                if (modalVersion) modalVersion.innerText = "OPENING BROWSER...";
-                                window.AndroidBridge.forceOpenExternalBrowser(data.apkDownloadUrl);
-                            } else {
-                                if (modalVersion) modalVersion.innerText = "🚨 OLD APP DETECTED! Rebuild APK!";
-                                // Fallback attempt
+                            
+                            // Remove http:// or https:// from the start of the URL for the intent
+                            const cleanUrl = data.apkDownloadUrl.replace(/^https?:\/\//, '');
+                            
+                            // Construct a strict Android Intent URL that forces the OS to handle it via ACTION_VIEW
+                            const intentUrl = `intent://${cleanUrl}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+                            
+                            // Try the intent URL which works on most default Android WebViews
+                            window.location.href = intentUrl;
+                            
+                            // Failsafe fallback after 1.5 seconds if the intent was blocked
+                            setTimeout(() => {
                                 window.location.href = data.apkDownloadUrl;
-                            }
+                            }, 1500);
                         };
                     }
                     if (updateModal) updateModal.classList.remove('hidden');
@@ -2084,9 +2105,9 @@ function renderHomepageBanners() {
     if (homepageBanners.length === 0) {
         // Fallback banner when no banners are active or configured
         slidesContainer.innerHTML = `
-            <div class="slide active absolute inset-0 w-full h-full flex items-center p-8 md:p-12 transition-all duration-700 ease-in-out opacity-100 z-10">
-                <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10"></div>
-                <img src="https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?q=80&w=1200" class="absolute inset-0 w-full h-full object-cover opacity-30">
+            <div class="slide active absolute inset-0 w-full h-full flex items-center p-8 md:p-12 transition-opacity duration-300 ease-in-out opacity-100 z-10">
+                <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-transparent z-10"></div>
+                <img src="https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?q=80&w=1200" class="absolute inset-0 w-full h-full object-cover object-center md:object-right opacity-100">
                 <div class="relative z-20 w-full md:w-2/3">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-[#ffd700]/20 text-[#ffd700] border border-[#ffd700]/40 rounded-full text-[10px] font-black uppercase tracking-wider mb-4 animate-pulse">
                         ⭐ GOLD MEMBER DEALS ⭐
@@ -2104,13 +2125,12 @@ function renderHomepageBanners() {
         return;
     }
     
-    // Inject Slides
     homepageBanners.forEach((b, index) => {
         const isActive = index === 0;
         slidesContainer.innerHTML += `
-            <div class="slide ${isActive ? 'active opacity-100 z-10' : 'opacity-0 z-0'} absolute inset-0 w-full h-full flex items-center p-8 md:p-12 transition-all duration-700 ease-in-out" data-slide-index="${index}">
-                <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10"></div>
-                <img src="${b.image}" class="absolute inset-0 w-full h-full object-cover opacity-30">
+            <div class="slide ${isActive ? 'active opacity-100 z-10' : 'opacity-0 z-0'} bg-black absolute inset-0 w-full h-full flex items-center p-8 md:p-12 transition-opacity duration-300 ease-in-out" data-slide-index="${index}">
+                <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-transparent z-10"></div>
+                <img src="${b.image}" class="absolute inset-0 w-full h-full object-cover object-center md:object-right opacity-100">
                 <div class="relative z-20 w-full md:w-2/3">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-[#ffd700]/20 text-[#ffd700] border border-[#ffd700]/40 rounded-full text-[10px] font-black uppercase tracking-wider mb-4 animate-pulse">
                         ${b.badge || '⭐ PROMOTION ⭐'}

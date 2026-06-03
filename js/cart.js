@@ -14,7 +14,22 @@ onSnapshot(doc(db, "storeSettings", "info"), (docSnap) => {
             ...data
         };
         
-        const mode = data.storeMode || (data.isOnline ? 'open' : 'closed');
+        let mode = data.storeMode || (data.isOnline ? 'open' : 'closed');
+        if (data.autoOpenTime && data.autoCloseTime) {
+            const now = new Date();
+            const currentStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            let isInsideWindow = false;
+            if (data.autoOpenTime <= data.autoCloseTime) {
+                isInsideWindow = currentStr >= data.autoOpenTime && currentStr < data.autoCloseTime;
+            } else {
+                isInsideWindow = currentStr >= data.autoOpenTime || currentStr < data.autoCloseTime;
+            }
+            if (!isInsideWindow) {
+                mode = 'closed';
+            } else if (mode === 'closed') {
+                mode = 'open';
+            }
+        }
         if (noDeliveryBanner) {
             if (mode === 'no-delivery') {
                 noDeliveryBanner.classList.remove('hidden');
