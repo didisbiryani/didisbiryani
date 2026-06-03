@@ -1,0 +1,45 @@
+====================================================
+DIDI'S BIRYANI: ANALYTICS & META PIXEL SETUP GUIDE
+====================================================
+
+1. WHAT WAS ADDED TO THE WEBSITE?
+----------------------------------------------------
+Two specific pieces of tracking code were added directly into the <head> section of the main 'index.html' file:
+1. Google Analytics 4 (GA4) Tracking Script
+2. Meta (Facebook/Instagram) Pixel Base Code
+
+
+2. GOOGLE ANALYTICS 4 (GA4)
+----------------------------------------------------
+* Why is it needed?
+Google Analytics is like a CCTV camera for your website. Without it, you have no idea who is visiting your site. It tells you:
+- How many people visit didisbiryani.in every day.
+- Where they are coming from (e.g., did they click a link on Google, WhatsApp, or Instagram?).
+- What city they live in.
+- Which biryani items they click on the most.
+- How long they stay on your website before leaving.
+
+* Current Status: LIVE AND WORKING 🟢
+It is already active! I found your Firebase Measurement ID (G-M7MKZF8RLW) and automatically linked it.
+
+* How to view your data:
+You do not need to edit any code. Simply go to https://analytics.google.com/ and log in with the exact same Google/Gmail account you used to create your Firebase database. You will see a dashboard showing all your live website traffic.
+
+
+3. META (FACEBOOK/INSTAGRAM) PIXEL
+----------------------------------------------------
+* Why is it needed?
+If you ever plan to spend money on Facebook or Instagram ads to promote Didi's Biryani, the Meta Pixel is strictly mandatory. It tracks users crossing over from social media to your website. It allows you to do two highly profitable things:
+- Tracking ROI: If you spend ₹500 on an Instagram ad, the Pixel tells you exactly how many actual Biryani orders came from that specific ₹500 ad.
+- Retargeting: If a customer adds a Chicken Biryani to their cart but closes the website without paying, the Pixel remembers them. You can then show that exact person a Facebook ad the next day reminding them to complete their order.
+
+* Current Status: WAITING FOR YOUR PIXEL ID 🟡
+The code is perfectly placed in 'index.html', but it is currently turned off because it contains a placeholder ID ('YOUR_META_PIXEL_ID').
+
+* How to turn it on later:
+1. Go to your Facebook Business Manager / Meta Events Manager.
+2. Click "Create a Pixel" (or Dataset). Facebook will give you a 15-digit number (e.g., 123456789012345).
+3. Open your 'index.html' file in any code editor or notepad.
+4. Scroll near the top (around line 118) and find this exact text: YOUR_META_PIXEL_ID
+5. Delete YOUR_META_PIXEL_ID and paste your actual 15-digit number in its place. Ensure you keep the single quotes around it (e.g., fbq('init', '123456789012345');).
+6. Save the file and upload it to your server. Your Meta Pixel is now live and tracking!
