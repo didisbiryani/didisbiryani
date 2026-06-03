@@ -3715,6 +3715,11 @@
           dishContainer.classList.remove("hidden");
         }
       }
+
+      // Initialize default tab on page load
+      document.addEventListener("DOMContentLoaded", () => {
+        switchTab("dashboard");
+      });
     </script>
     <!-- Custom CSS for Invoice Printing -->
     <style>
