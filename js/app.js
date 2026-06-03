@@ -1951,6 +1951,11 @@ async function initApp() {
             const hangingMain = document.getElementById('hanging-sign-main');
             const hangingSub = document.getElementById('hanging-sign-subtext');
             
+            // Update Android App Promo Banner URL dynamically
+            if (typeof window.updateAppPromoUrl === 'function') {
+                window.updateAppPromoUrl(data.apkDownloadUrl);
+            }
+
             if (mode === 'closed' || mode === 'paused') {
                 if (hangingSign && hangingMain && hangingSub) {
                     hangingSign.classList.remove('hidden');
