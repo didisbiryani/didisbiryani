@@ -1892,12 +1892,12 @@ async function initApp() {
                         downloadBtn.href = "#";
                         downloadBtn.onclick = (e) => {
                             e.preventDefault();
-                            try {
-                                const urlObj = new URL(data.apkDownloadUrl);
-                                const intentUrl = `intent://${urlObj.host}${urlObj.pathname}${urlObj.search}#Intent;scheme=${urlObj.protocol.replace(':', '')};action=android.intent.action.VIEW;end;`;
-                                window.location.href = intentUrl;
-                            } catch (err) {
-                                window.location.href = data.apkDownloadUrl;
+                            if (window.AndroidBridge && typeof window.AndroidBridge.openUrlInBrowser === 'function') {
+                                // Call the native Kotlin function (requires new APK build)
+                                window.AndroidBridge.openUrlInBrowser(data.apkDownloadUrl);
+                            } else {
+                                // Fallback for old apps or web browsers
+                                window.open(data.apkDownloadUrl, '_blank');
                             }
                         };
                     }
