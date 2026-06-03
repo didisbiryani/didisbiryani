@@ -16,9 +16,20 @@ function showNotification(message, type = "info") {
 
 async function requestPushPermission(user) {
     try {
+        if (!('serviceWorker' in navigator)) {
+            console.log('Service workers are not supported.');
+            return;
+        }
+
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         const permission = await Notification.requestPermission();
+        
         if (permission === 'granted') {
-            const currentToken = await getToken(messaging, { vapidKey: 'BPJb6R_MDcrfJpmdPUUa4_I_BT3BvCXBbh3b3YrqB30e6cJCiQCnI8iFAicM4smfp36WeBS9dwMv2KZuu86fWlE' });
+            const currentToken = await getToken(messaging, { 
+                vapidKey: 'BPJb6R_MDcrfJpmdPUUa4_I_BT3BvCXBbh3b3YrqB30e6cJCiQCnI8iFAicM4smfp36WeBS9dwMv2KZuu86fWlE',
+                serviceWorkerRegistration: registration
+            });
+            
             if (currentToken) {
                 // Save token to user profile
                 await updateDoc(doc(db, "users", user.uid), {
