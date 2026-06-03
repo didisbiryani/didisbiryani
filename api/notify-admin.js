@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { orderId } = req.body;
+    const { orderId, status } = req.body;
     if (!orderId) {
         return res.status(400).json({ error: 'orderId is required' });
     }
@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
         const orderData = orderRef.data();
         
         // Prevent abuse: Check if order is recent (created within last 5 minutes)
-        if (orderData.createdAt && orderData.createdAt.toDate) {
+        if (!status && orderData.createdAt && orderData.createdAt.toDate) {
             const orderTime = orderData.createdAt.toDate().getTime();
             const now = Date.now();
             if (now - orderTime > 5 * 60 * 1000) {
@@ -63,11 +63,19 @@ module.exports = async (req, res) => {
             }
         }
 
+        let pushTitle = "🚨 New Order Arrived!";
+        let pushBody = `Order #${orderData.orderId || orderId} has been placed. Please prepare it.`;
+
+        if (status === 'ready') {
+            pushTitle = "🚚 Order Ready for Delivery!";
+            pushBody = `Order #${orderData.orderId || orderId} is cooked and packed. Please pick it up!`;
+        }
+
         // Send high priority push notification to drivers/admins
         const message = {
             data: {
-                title: "🚨 New Order Arrived!",
-                body: `Order #${orderData.orderId || orderId} has been placed. Please prepare it.`,
+                title: pushTitle,
+                body: pushBody,
                 orderId: orderId,
                 click_action: "FLUTTER_NOTIFICATION_CLICK" // if needed
             },
