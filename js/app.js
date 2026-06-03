@@ -1889,17 +1889,10 @@ async function initApp() {
                     
                     if (modalVersion) modalVersion.innerText = data.latestAppVersion;
                     if (downloadBtn) {
-                        downloadBtn.href = "#";
-                        downloadBtn.onclick = (e) => {
-                            e.preventDefault();
-                            if (window.AndroidBridge && typeof window.AndroidBridge.openUrlInBrowser === 'function') {
-                                // Call the native Kotlin function (requires new APK build)
-                                window.AndroidBridge.openUrlInBrowser(data.apkDownloadUrl);
-                            } else {
-                                // Fallback for old apps or web browsers
-                                window.open(data.apkDownloadUrl, '_blank');
-                            }
-                        };
+                        downloadBtn.href = data.apkDownloadUrl;
+                        downloadBtn.target = "_blank";
+                        downloadBtn.setAttribute('download', '');
+                        downloadBtn.onclick = null;
                     }
                     if (updateModal) updateModal.classList.remove('hidden');
                 }
