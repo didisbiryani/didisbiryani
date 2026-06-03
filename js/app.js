@@ -1889,10 +1889,17 @@ async function initApp() {
                     
                     if (modalVersion) modalVersion.innerText = data.latestAppVersion;
                     if (downloadBtn) {
-                        downloadBtn.href = data.apkDownloadUrl;
-                        downloadBtn.target = "_blank";
-                        downloadBtn.setAttribute('download', '');
-                        downloadBtn.onclick = null;
+                        downloadBtn.href = "#";
+                        downloadBtn.onclick = (e) => {
+                            e.preventDefault();
+                            try {
+                                // Attempt to use the native bridge compiled in Android Studio
+                                window.AndroidBridge.openUrlInBrowser(data.apkDownloadUrl);
+                            } catch (err) {
+                                // Fallback: assign directly so DownloadListener or shouldOverrideUrlLoading catches it
+                                window.location.href = data.apkDownloadUrl;
+                            }
+                        };
                     }
                     if (updateModal) updateModal.classList.remove('hidden');
                 }
