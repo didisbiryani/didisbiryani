@@ -1216,7 +1216,8 @@ window.submitOrderDirect = async () => {
             // 1. Create order doc
             const docRef = await addDoc(collection(db, "orders"), orderData);
             sendTelegramNotification(orderData);
-            fetch('/api/notify-admin', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
+            const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
+            fetch(notifyUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
             // 2. Deduct wallet balance from user profile
             await consumeWalletEntries(currentUser.uid, walletAppliedAmount);
@@ -1245,7 +1246,8 @@ window.submitOrderDirect = async () => {
         try {
             const docRef = await addDoc(collection(db, "orders"), orderData);
             sendTelegramNotification(orderData);
-            fetch('/api/notify-admin', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
+            const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
+            fetch(notifyUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
             // Deduct wallet balance if any was applied
             if (walletAppliedAmount > 0) {
@@ -1310,7 +1312,8 @@ window.submitOrderDirect = async () => {
                     showToast("Payment Captured! Saving order...", "success");
                     const docRef = await addDoc(collection(db, "orders"), orderData);
                     sendTelegramNotification(orderData);
-                    fetch('/api/notify-admin', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
+                    const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
+            fetch(notifyUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
                     // Deduct wallet balance if any was applied
                     if (walletAppliedAmount > 0) {

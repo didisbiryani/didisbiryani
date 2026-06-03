@@ -876,7 +876,8 @@ window.updateOrderStatus = async (id, status) => {
     // Ping Delivery Boy App
     if (status === 'Ready for Delivery') {
         try {
-            fetch('/api/notify-admin', {
+            const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
+            fetch(notifyUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ orderId: id, status: 'ready' })
