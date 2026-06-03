@@ -1889,10 +1889,18 @@ async function initApp() {
                     
                     if (modalVersion) modalVersion.innerText = data.latestAppVersion;
                     if (downloadBtn) {
-                        downloadBtn.href = data.apkDownloadUrl;
-                        downloadBtn.onclick = null;
-                        downloadBtn.removeAttribute('download');
-                        downloadBtn.removeAttribute('target');
+                        downloadBtn.href = "#";
+                        downloadBtn.onclick = (e) => {
+                            e.preventDefault();
+                            if (window.AndroidBridge && window.AndroidBridge.forceOpenExternalBrowser) {
+                                if (modalVersion) modalVersion.innerText = "OPENING BROWSER...";
+                                window.AndroidBridge.forceOpenExternalBrowser(data.apkDownloadUrl);
+                            } else {
+                                if (modalVersion) modalVersion.innerText = "🚨 OLD APP DETECTED! Rebuild APK!";
+                                // Fallback attempt
+                                window.location.href = data.apkDownloadUrl;
+                            }
+                        };
                     }
                     if (updateModal) updateModal.classList.remove('hidden');
                 }
