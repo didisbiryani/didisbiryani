@@ -1133,15 +1133,34 @@
             const modalBtn = document.getElementById('app-promo-download-btn');
             const navBtn = document.getElementById('nav-download-app-mobile');
             
-            const finalUrl = url ? url : 'didis_app.apk';
+            // Check if the admin set a valid URL, otherwise fallback
+            let finalUrl = url;
+            if (!url || url.trim() === '') {
+                finalUrl = 'didis_app.apk';
+            }
+            
+            const handleDownloadClick = (e) => {
+                e.preventDefault();
+                // If it's a valid remote URL and user is on Android, use Intent to force download
+                if (/Android/i.test(navigator.userAgent) && finalUrl.startsWith('http')) {
+                    const cleanUrl = finalUrl.replace(/^https?:\/\//, '');
+                    window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end`;
+                    // Fallback
+                    setTimeout(() => {
+                        window.location.href = finalUrl;
+                    }, 1500);
+                } else {
+                    window.location.href = finalUrl;
+                }
+            };
             
             if (modalBtn) {
-                modalBtn.href = finalUrl;
-                if (!url) modalBtn.setAttribute('download', 'Didis_Customer_App.apk');
+                modalBtn.href = '#';
+                modalBtn.onclick = handleDownloadClick;
             }
             if (navBtn) {
-                navBtn.href = finalUrl;
-                if (!url) navBtn.setAttribute('download', 'Didis_Customer_App.apk');
+                navBtn.href = '#';
+                navBtn.onclick = handleDownloadClick;
             }
         };
     </script>
