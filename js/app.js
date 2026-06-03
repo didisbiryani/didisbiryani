@@ -1889,21 +1889,16 @@ async function initApp() {
                     
                     if (modalVersion) modalVersion.innerText = data.latestAppVersion;
                     if (downloadBtn) {
-                        let finalUrl = data.apkDownloadUrl;
-                        try {
-                            const urlObj = new URL(finalUrl);
-                            // Force Android to open the URL in the standalone Chrome App (breaking out of the TWA)
-                            finalUrl = `intent://${urlObj.host}${urlObj.pathname}${urlObj.search}#Intent;scheme=${urlObj.protocol.replace(':', '')};package=com.android.chrome;end;`;
-                        } catch(e) {}
-                        
-                        downloadBtn.href = finalUrl;
-                        
-                        // Add a fallback click handler in case the href intent is blocked
+                        downloadBtn.href = "#";
                         downloadBtn.onclick = (e) => {
-                            setTimeout(() => {
-                                // If the intent failed to open Chrome after 1 second, fallback to standard window.location
+                            e.preventDefault();
+                            try {
+                                const urlObj = new URL(data.apkDownloadUrl);
+                                const intentUrl = `intent://${urlObj.host}${urlObj.pathname}${urlObj.search}#Intent;scheme=${urlObj.protocol.replace(':', '')};action=android.intent.action.VIEW;end;`;
+                                window.location.href = intentUrl;
+                            } catch (err) {
                                 window.location.href = data.apkDownloadUrl;
-                            }, 1000);
+                            }
                         };
                     }
                     if (updateModal) updateModal.classList.remove('hidden');
@@ -1911,7 +1906,22 @@ async function initApp() {
             }
 
             if (typeof startBannerSliderAutoRotation === 'function') startBannerSliderAutoRotation();
-            const mode = data.storeMode || (data.isOnline ? 'open' : 'closed');
+            let mode = data.storeMode || (data.isOnline ? 'open' : 'closed');
+            if (data.autoOpenTime && data.autoCloseTime) {
+                const now = new Date();
+                const currentStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                let isInsideWindow = false;
+                if (data.autoOpenTime <= data.autoCloseTime) {
+                    isInsideWindow = currentStr >= data.autoOpenTime && currentStr < data.autoCloseTime;
+                } else {
+                    isInsideWindow = currentStr >= data.autoOpenTime || currentStr < data.autoCloseTime;
+                }
+                if (!isInsideWindow) {
+                    mode = 'closed';
+                } else if (mode === 'closed') {
+                    mode = 'open';
+                }
+            }
             
             const storeStatusBanner = document.getElementById('store-status-banner');
             const storeStatusText = document.getElementById('store-status-text');
