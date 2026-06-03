@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin.html
+Disallow: /delivery.html
+
+Sitemap: https://didisbiryani.in/sitemap.xml

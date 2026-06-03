@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <script src="js/security.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Complete Your Payment - Didi's Biryani</title>
+    <script src="js/tailwind-cdn.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Great+Vibes&family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            gold: '#D4A017',
+                            black: '#0A0A0A',
+                            white: '#FAFAFA'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        body {
+            background: #000;
+        }
+        .bg-pattern {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(212, 160, 23, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(212, 160, 23, 0.08), transparent 25%);
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-black text-brand-white min-h-screen font-sans antialiased selection:bg-brand-gold selection:text-black flex flex-col relative pb-32">
+    <div class="bg-pattern"></div>
+    
+    <!-- Top Nav -->
+    <nav class="fixed top-0 w-full z-40 glass-panel shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+        <div class="max-w-md mx-auto px-4 h-16 flex items-center justify-center">
+            <h1 class="text-xl font-black tracking-widest uppercase flex items-center gap-2">
+                <i data-lucide="utensils-crossed" class="w-5 h-5 text-brand-gold"></i>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-gold via-yellow-200 to-brand-gold">Didi's Biryani</span>
+            </h1>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-md mx-auto pt-24 px-4 pb-12">
+        <div id="loading-state" class="flex flex-col items-center justify-center py-20">
+            <i data-lucide="loader-2" class="w-8 h-8 text-brand-gold animate-spin mb-4"></i>
+            <p class="text-brand-white/50 text-sm font-bold animate-pulse">Loading Order Details...</p>
+        </div>
+
+        <div id="error-state" class="hidden flex-col items-center justify-center py-20 text-center">
+            <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/30">
+                <i data-lucide="alert-triangle" class="w-8 h-8 text-red-500"></i>
+            </div>
+            <h2 class="text-xl font-bold text-brand-white mb-2">Order Not Found</h2>
+            <p class="text-brand-white/50 text-sm" id="error-message">This payment link might be invalid or expired.</p>
+        </div>
+
+        <div id="success-state" class="hidden flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-4 border border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                <i data-lucide="check-circle-2" class="w-10 h-10 text-green-500"></i>
+            </div>
+            <h2 class="text-3xl font-black text-brand-white mb-2">Payment Successful!</h2>
+            <p class="text-brand-white/50 text-sm">Thank you for your order. We've received your payment.</p>
+        </div>
+
+        <div id="payment-card" class="hidden glass border border-white/10 rounded-3xl p-6 relative overflow-hidden shadow-[0_0_50px_rgba(212,160,23,0.05)]">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-gold/0 via-brand-gold to-brand-gold/0"></div>
+            
+            <div class="text-center mb-6">
+                <p class="text-brand-white/50 text-xs font-bold uppercase tracking-wider mb-1">Total Amount Due</p>
+                <div class="text-5xl font-black text-brand-gold tracking-tight" id="pay-amount">₹0</div>
+            </div>
+
+            <div class="space-y-4 mb-8">
+                <div class="flex justify-between items-center py-3 border-b border-white/5">
+                    <span class="text-brand-white/50 text-sm">Order ID</span>
+                    <span class="text-brand-white font-bold text-sm" id="pay-order-id">#---</span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-white/5">
+                    <span class="text-brand-white/50 text-sm">Customer</span>
+                    <span class="text-brand-white font-bold text-sm" id="pay-customer">---</span>
+                </div>
+            </div>
+
+            <div id="payment-methods-container">
+                <!-- Buttons injected via JS depending on store settings -->
+            </div>
+            
+            <div id="qr-container" class="hidden mt-6 flex flex-col items-center justify-center bg-white p-4 rounded-2xl">
+                <p class="text-black font-bold text-sm mb-2 text-center w-full">Scan with any UPI App</p>
+                <div id="upi-qrcode" class="mb-2"></div>
+                <p class="text-black/50 text-xs text-center font-mono" id="upi-id-display"></p>
+                <p class="text-black font-black text-lg mt-2 text-center w-full" id="qr-amount-display"></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2"></div>
+
+    <script type="module" src="js/payment.js?v=2.0"></script>
+    <script>
+        if (window.lucide) lucide.createIcons();
+    </script>
+</body>
+</html>

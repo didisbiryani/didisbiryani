@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.didis.customer",
+    "sha256_cert_fingerprints": [
+      "DB:ED:A0:57:01:1E:D2:9C:73:50:0A:3C:A0:08:20:08:43:D0:0B:16:8B:7B:D6:F7:BF:0A:1C:B1:62:A8:F7:74"
+    ]
+  }
+}]

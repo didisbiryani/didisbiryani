@@ -1,0 +1,36 @@
+.env.local
+.env
+
+.vercel
+node_modules/
+dist/
+ready_to_upload/
+npm-debug.log
+.DS_Store
+scratch/
+
+# Android App Projects (not part of the website)
+DidisCustomerApp/
+DidisDriverApp/
+
+# Dev/Build tools (not needed on the server)
+vite.config.js
+postcss.config.js
+tailwind.config.js
+package.json
+package-lock.json
+compress-logo.js
+fix-html.js
+generate_android.js
+generate_customer_android.js
+strip-tailwind.js
+update-logo-refs.js
+update_email.js
+test-db.js
+test_live.js
+vercel.json
+firestore.rules
+
+# Temp files
+temp_*.txt
+Analytics_and_Pixel_Guide.txt

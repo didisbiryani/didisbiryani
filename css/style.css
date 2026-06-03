@@ -1,0 +1,261 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================
+   Didi's Biryani - Ultra Premium Stylesheet
+   ========================================== */
+
+/* Smooth, Elegant Scroll Behavior & Lenis Core integration */
+html {
+    scroll-behavior: smooth;
+    background-color: #020202;
+    scrollbar-width: thin;
+    scrollbar-color: #d4a017 #020202;
+}
+
+html.lenis {
+    height: auto;
+}
+
+.lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+    overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+    pointer-events: none;
+}
+
+/* Premium Shifting Mesh Gradient Animation */
+@keyframes premiumGradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Base Body with Deep Luxury Canvas & Glowing Shifting Mesh Aura */
+body {
+    background: linear-gradient(-45deg, #020203, #150d03, #06050b, #1b1002, #020203) !important;
+    background-size: 400% 400% !important;
+    animation: premiumGradientShift 22s ease infinite !important;
+    background-attachment: fixed !important;
+    position: relative;
+    overflow-x: hidden;
+    color: #fdfdfd;
+    font-family: 'Inter', sans-serif;
+    will-change: background-position;
+}
+
+/* Subtle Carbon Grid Overlay for High-End Cinematic Texture */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.005) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.005) 1px, transparent 1px);
+    background-size: 50px 50px;
+    background-position: center;
+    pointer-events: none;
+    z-index: -1;
+    transform: translateZ(0);
+}
+
+/* Premium Floating Blur Blobs (Drifting slowly in background) */
+body::after {
+    content: "";
+    position: fixed;
+    top: 30%;
+    right: 5%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(212, 160, 23, 0.04) 0%, transparent 70%);
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: -2;
+    animation: driftGlowRight 30s ease-in-out infinite alternate;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Secondary warm amber glow blob for enhanced canvas depth */
+html::after {
+    content: "";
+    position: fixed;
+    bottom: -10%;
+    left: -10%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(193, 18, 31, 0.02) 0%, transparent 70%);
+    filter: blur(140px);
+    pointer-events: none;
+    z-index: -2;
+    animation: driftGlowLeft 35s ease-in-out infinite alternate;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+@keyframes driftGlowRight {
+    0% { transform: translate3d(-10%, -15%, 0) scale(0.9); }
+    100% { transform: translate3d(10%, 15%, 0) scale(1.15); }
+}
+
+@keyframes driftGlowLeft {
+    0% { transform: translate3d(15%, 10%, 0) scale(1.15); }
+    100% { transform: translate3d(-10%, -15%, 0) scale(0.9); }
+}
+
+/* Premium Glassmorphic Cards & Panels */
+.glass {
+    background: rgba(12, 12, 12, 0.55);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass:hover {
+    background: rgba(18, 18, 18, 0.7);
+    border-color: rgba(212, 160, 23, 0.25);
+    box-shadow: 
+        0 15px 45px rgba(0, 0, 0, 0.6), 
+        0 0 30px rgba(212, 160, 23, 0.06);
+}
+
+.glass-dark {
+    background: rgba(6, 6, 6, 0.85);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Premium Navigation Glass Overlay */
+header.sticky {
+    background: rgba(3, 3, 3, 0.75);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Hide Scrollbar helper utilities */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Modals animations & overlays */
+#cart-modal.active {
+    display: flex !important;
+}
+
+/* Ultra Luxury Card Micro-interactions (Float Lift, Border Gold transition & Shadow) */
+.menu-card-premium {
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.menu-card-premium:hover {
+    transform: translateY(-10px) scale(1.015);
+    border-color: rgba(212, 160, 23, 0.3) !important;
+    background: #151515 !important;
+    box-shadow: 
+        0 20px 45px rgba(0, 0, 0, 0.75), 
+        0 0 35px rgba(212, 160, 23, 0.15) !important;
+}
+
+/* Scroll-Driven entrance Reveal Animations */
+.reveal-element, .reveal-lift {
+    opacity: 0;
+    transform: translateY(40px) scale(0.97);
+    transition: 
+        opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), 
+        transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-fade-in {
+    opacity: 0;
+    transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-slide-left {
+    opacity: 0;
+    transform: translateX(50px);
+    transition: 
+        opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), 
+        transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-slide-right {
+    opacity: 0;
+    transform: translateX(-50px);
+    transition: 
+        opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), 
+        transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-scale {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: 
+        opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), 
+        transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Activated States */
+.reveal-active {
+    opacity: 1 !important;
+    transform: translate(0) scale(1) !important;
+}
+
+/* Staggered Delay Helper Utilities */
+.delay-75 { transition-delay: 75ms; }
+.delay-100 { transition-delay: 100ms; }
+.delay-150 { transition-delay: 150ms; }
+.delay-200 { transition-delay: 200ms; }
+.delay-250 { transition-delay: 250ms; }
+.delay-300 { transition-delay: 300ms; }
+.delay-400 { transition-delay: 400ms; }
+.delay-500 { transition-delay: 500ms; }
+
+/* Admin Panel Sidebar & Tabs Layout */
+.admin-sidebar { 
+    width: 260px; 
+    flex-shrink: 0; 
+    background: rgba(12, 12, 12, 0.8);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Custom Luxury Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #020202;
+}
+::-webkit-scrollbar-thumb {
+    background: #181818;
+    border-radius: 4px;
+    border: 2px solid #020202;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #d4a017;
+}
+
+/* Fix select dropdown options visibility in dark mode */
+select option, select optgroup {
+    background-color: #111111;
+    color: #ffffff;
+}

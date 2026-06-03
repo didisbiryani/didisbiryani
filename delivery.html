@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <script src="js/security.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Didi's Delivery Partner</title>
+    <script type="module" src="js/tailwind-cdn.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Great+Vibes&family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            gold: '#D4A017',
+                            black: '#0A0A0A',
+                            white: '#FAFAFA'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Custom Styles -->
+    <style>
+        .glass-panel {
+            background: rgba(25, 25, 25, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Swipe Button Styles */
+        .swipe-container {
+            position: relative;
+            width: 100%;
+            height: 56px;
+            background-color: #1a1a1a;
+            border-radius: 9999px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(212, 160, 23, 0.2);
+            user-select: none;
+            touch-action: none; /* Prevent scrolling when swiping */
+        }
+        .swipe-text {
+            color: #d4a017;
+            font-weight: 700;
+            font-size: 14px;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .swipe-thumb {
+            position: absolute;
+            left: 4px;
+            top: 4px;
+            width: 48px;
+            height: 48px;
+            background-color: #d4a017;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 0 0 10px rgba(212, 160, 23, 0.4);
+            transition: background-color 0.2s;
+        }
+        .swipe-thumb:active {
+            background-color: #fff;
+        }
+        .swipe-track-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0;
+            background-color: rgba(212, 160, 23, 0.2);
+            z-index: 5;
+        }
+        .swipe-success .swipe-thumb {
+            background-color: #22c55e !important;
+            color: white;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+        }
+        .swipe-success .swipe-track-fill {
+            background-color: rgba(34, 197, 94, 0.2);
+        }
+        .swipe-success .swipe-text {
+            color: #22c55e;
+        }
+    </style>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-brand-black text-brand-white font-sans antialiased min-h-screen relative overflow-hidden pb-safe">
+    
+    <!-- Login Screen -->
+    <div id="login-screen" class="absolute inset-0 z-50 bg-[#0a0a0a] flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-sm glass border border-white/10 rounded-3xl p-8 text-center shadow-[0_0_50px_rgba(212, 160, 23,0.1)]">
+            <div class="w-20 h-20 bg-brand-gold/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-brand-gold/30 shadow-[0_0_30px_rgba(212, 160, 23,0.2)]">
+                <i data-lucide="bike" class="w-10 h-10 text-brand-gold"></i>
+            </div>
+            <h1 class="text-3xl font-black text-brand-white tracking-tight mb-2">Delivery Partner</h1>
+            <p class="text-brand-white/50 text-sm mb-8">Login with your registered phone number</p>
+            
+            <form id="delivery-login-form" class="space-y-4">
+                <input type="tel" id="login-phone" required class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-4 text-center text-lg tracking-widest focus:outline-none focus:border-brand-gold" placeholder="Phone Number">
+                <input type="password" id="login-pin" required class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-4 text-center text-lg tracking-widest focus:outline-none focus:border-brand-gold" placeholder="4-Digit PIN">
+                
+                <button type="submit" class="w-full py-4 mt-4 bg-brand-gold text-brand-black font-black text-lg rounded-xl shadow-[0_0_15px_rgba(212, 160, 23,0.4)] hover:bg-white transition-colors">
+                    Login
+                </button>
+            </form>
+            <p id="login-error" class="text-red-500 text-sm mt-4 hidden font-bold">Invalid credentials</p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard-screen" class="hidden h-screen flex flex-col relative z-10">
+        <!-- Header -->
+        <header class="glass border-b border-white/10 flex flex-col sticky top-0 z-20">
+            <div class="px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-brand-gold/20 rounded-full flex items-center justify-center text-brand-gold font-black border border-brand-gold/30">
+                        <i data-lucide="bike" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-black text-lg leading-tight" id="driver-name-display">Driver</h2>
+                        <p id="driver-status-text" class="text-[10px] font-bold uppercase tracking-widest text-white/50">Status: Unknown</p>
+                    </div>
+                </div>
+                <button id="logout-btn" class="w-10 h-10 bg-white/5 text-brand-white/50 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <!-- Status Action Bar -->
+            <div id="driver-action-bar" class="bg-black/50 border-t border-white/5 px-6 py-3 flex gap-2">
+                <button id="btn-status-arrived" onclick="setDriverStatus('Available')" class="flex-1 py-2 rounded-lg text-xs font-bold border border-green-500/50 text-green-500 hover:bg-green-500 hover:text-white transition-colors">
+                    I am at the restaurant
+                </button>
+                <button id="btn-status-delivery" onclick="setDriverStatus('On Delivery')" class="flex-1 py-2 rounded-lg text-xs font-bold border border-blue-500/50 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors">
+                    On Delivery
+                </button>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="flex-1 overflow-y-auto pb-24 hide-scrollbar relative">
+            <!-- TAB: Orders -->
+            <div id="tab-orders" class="p-4 space-y-4 min-h-full block">
+                <div id="orders-container" class="space-y-4">
+                    <!-- Orders dynamically injected here -->
+                </div>
+            </div>
+
+            <!-- TAB: Analytics -->
+            <div id="tab-analytics" class="p-4 space-y-6 min-h-full hidden">
+                <h3 class="text-xl font-black text-brand-white mb-2">My Performance</h3>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                        <p class="text-xs text-brand-white/50 mb-1">Today</p>
+                        <h4 class="text-2xl font-black text-brand-gold" id="stat-del-today">0</h4>
+                        <p class="text-[10px] text-brand-white/70">Deliveries</p>
+                    </div>
+                    <div class="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                        <p class="text-xs text-brand-white/50 mb-1">This Week</p>
+                        <h4 class="text-2xl font-black text-brand-gold" id="stat-del-week">0</h4>
+                        <p class="text-[10px] text-brand-white/70">Deliveries</p>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-black text-brand-white mb-2">Earnings & Cash</h3>
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-brand-gold/20 to-black border border-brand-gold/30 rounded-2xl p-5 flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-brand-white/70 font-bold mb-1">Tip Revenue (Today)</p>
+                            <p class="text-[10px] text-brand-white/50">100% goes to you</p>
+                        </div>
+                        <h4 class="text-3xl font-black text-brand-gold">₹<span id="stat-tip-today">0</span></h4>
+                    </div>
+                    
+                    <div class="bg-white/5 border border-white/10 rounded-2xl p-5 flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-brand-white/70 font-bold mb-1">Cash Collected (COD)</p>
+                            <p class="text-[10px] text-red-400">To remit to restaurant</p>
+                        </div>
+                        <h4 class="text-2xl font-black text-brand-white">₹<span id="stat-cash-today">0</span></h4>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 w-full bg-[#0a0a0add] backdrop-blur-md border-t border-white/10 z-30 pb-safe">
+            <div class="flex justify-around items-center h-16">
+                <button onclick="switchDeliveryTab('orders')" id="nav-orders" class="flex-1 flex flex-col items-center justify-center gap-1 text-brand-gold transition-colors">
+                    <i data-lucide="list-ordered" class="w-5 h-5"></i>
+                    <span class="text-[10px] font-bold">Orders</span>
+                </button>
+                <button onclick="switchDeliveryTab('analytics')" id="nav-analytics" class="flex-1 flex flex-col items-center justify-center gap-1 text-brand-white/40 hover:text-brand-white transition-colors">
+                    <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                    <span class="text-[10px] font-bold">Analytics</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Direct UPI QR Modal -->
+    <div id="direct-upi-modal" class="fixed inset-0 bg-black/90 z-[100] hidden items-center justify-center p-6 backdrop-blur-sm">
+        <div class="glass border border-white/10 rounded-3xl w-full max-w-sm p-8 text-center relative overflow-hidden">
+            <button onclick="closeDirectUpiModal()" class="absolute top-4 right-4 text-brand-white/50 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            
+            <h3 class="text-xl font-black text-brand-white mb-2">Scan to Pay</h3>
+            <p class="text-sm text-brand-white/50 mb-6">Ask customer to scan using GPay, PhonePe, or Paytm</p>
+            
+            <div class="bg-white p-4 rounded-2xl mx-auto w-48 h-48 mb-6 flex items-center justify-center relative shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                <div id="upi-qr-loading" class="absolute inset-0 flex items-center justify-center bg-white rounded-2xl">
+                    <span class="animate-pulse text-brand-black font-bold">Loading...</span>
+                </div>
+                <img id="upi-qr-image" src="" alt="UPI QR" class="w-full h-full hidden rounded-lg object-contain">
+            </div>
+            
+            <div class="bg-[#111] border border-white/10 rounded-xl p-4 mb-6">
+                <p class="text-[10px] text-brand-white/50 uppercase tracking-widest mb-1">Total Amount to Collect</p>
+                <h2 class="text-3xl font-black text-brand-gold" id="upi-qr-amount">₹0</h2>
+            </div>
+            
+            <button id="upi-confirm-btn" class="w-full py-4 bg-green-500 text-white font-black rounded-xl hover:bg-white hover:text-green-500 transition-colors shadow-[0_0_15px_rgba(34,197,94,0.3)] flex items-center justify-center gap-2">
+                <i data-lucide="check-circle" class="w-5 h-5"></i> Confirm Payment Received
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function switchDeliveryTab(tab) {
+            document.getElementById('tab-orders').classList.add('hidden');
+            document.getElementById('tab-orders').classList.remove('block');
+            document.getElementById('tab-analytics').classList.add('hidden');
+            document.getElementById('tab-analytics').classList.remove('block');
+            
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('block');
+            
+            document.getElementById('nav-orders').classList.replace('text-brand-gold', 'text-brand-white/40');
+            document.getElementById('nav-analytics').classList.replace('text-brand-gold', 'text-brand-white/40');
+            
+            document.getElementById('nav-' + tab).classList.replace('text-brand-white/40', 'text-brand-gold');
+            document.getElementById('nav-' + tab).classList.remove('hover:text-brand-white');
+        }
+    </script>
+
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/delivery.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

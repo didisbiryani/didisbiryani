@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="js/security.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard - Didi's Biryani</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Great+Vibes&family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-brand-black text-brand-white min-h-screen pb-20">
+    
+    <!-- Navbar -->
+    <nav class="sticky top-0 w-full z-50 bg-[#0a0a0add] backdrop-blur-md border-b border-white/10 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <a href="index.html" class="flex items-center gap-3 group">
+                <i data-lucide="user" class="text-brand-gold w-6 h-6"></i>
+                <div class="text-xl font-black tracking-tighter text-brand-white">
+                    My <span class="text-brand-gold">Dashboard</span>
+                </div>
+            </a>
+            <div class="flex items-center gap-4">
+                <a href="index.html" class="text-sm text-brand-white/70 hover:text-brand-gold transition-colors">Back to Menu</a>
+                <button id="logout-btn" class="px-4 py-2 border border-brand-red text-brand-red rounded-full hover:bg-brand-red hover:text-white transition-colors text-sm font-bold">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+        
+        <!-- User Profile Header -->
+        <div class="bg-gradient-to-r from-brand-gold/20 to-transparent border border-brand-gold/30 rounded-3xl p-6 md:p-10 mb-10 flex items-center gap-6">
+            <img id="user-avatar" src="https://via.placeholder.com/100" class="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-brand-gold shadow-[0_0_20px_rgba(212, 160, 23,0.4)]">
+            <div>
+                <h1 id="user-name" class="text-2xl md:text-4xl font-black text-brand-white mb-1">Loading...</h1>
+                <p id="user-email" class="text-brand-white/60">Please wait</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Side: Profile Settings & Wallet (1 Col) -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Wallet Balance Card -->
+                <div class="glass border border-brand-gold/30 rounded-3xl p-6 bg-gradient-to-br from-brand-gold/15 to-transparent relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 w-20 h-20 bg-brand-gold/10 rounded-full blur-xl"></div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-brand-gold/20 flex items-center justify-center text-brand-gold shadow-[0_0_15px_rgba(212, 160, 23,0.3)]">
+                            <i data-lucide="wallet" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-brand-white">Didi's Wallet</h3>
+                            <p class="text-[10px] text-brand-white/50">Your active reward cash</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-brand-white/70">Wallet Balance</p>
+                    <h4 class="text-3xl font-black text-brand-gold mt-1 mb-4" id="wallet-balance">₹0.00</h4>
+                    
+                    <!-- Expiry Warning -->
+                    <div id="wallet-expiry-warning" class="hidden mb-4 p-3 rounded-2xl bg-brand-red/10 border border-brand-red/30 text-[10px] text-brand-red font-bold flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0"></i>
+                        <span id="wallet-expiry-text">Some cash expires soon!</span>
+                    </div>
+                    
+                    <!-- Loyalty Status -->
+                    <div class="bg-white/5 border border-white/10 rounded-2xl p-4 text-xs space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-brand-white/50">Completed Orders</span>
+                            <span class="text-brand-white font-bold" id="completed-orders-count">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-brand-white/50">Next Milestone</span>
+                            <span class="text-brand-gold font-bold" id="next-milestone-text">5 Orders</span>
+                        </div>
+                        <div class="w-full bg-white/10 h-2 rounded-full mt-2 overflow-hidden">
+                            <div class="bg-brand-gold h-full rounded-full transition-all duration-500" id="milestone-progress" style="width: 0%"></div>
+                        </div>
+                        <p class="text-[9px] text-brand-white/45 mt-2" id="loyalty-rule-notice">Every 5 completed orders unlocks ₹50 reward cash!</p>
+                    </div>
+                </div>
+
+                <!-- Settings Card -->
+                <div class="glass border border-white/10 rounded-3xl p-6 bg-[#141414]">
+                    <h3 class="text-base font-bold text-brand-white mb-4 flex items-center gap-2">
+                        <i data-lucide="user-cog" class="text-brand-gold"></i> Profile Settings
+                    </h3>
+                    
+                    <form id="profile-settings-form" class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5">Full Name</label>
+                            <input type="text" id="settings-name" placeholder="e.g. John Doe" class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-brand-gold text-xs font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5">Phone Number</label>
+                            <input type="tel" id="settings-phone" placeholder="e.g. +91 9876543210" class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-brand-gold text-xs font-semibold">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5">Default Delivery Address</label>
+                            <textarea id="settings-address" rows="3" placeholder="Flat, Area, Landmark..." class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-brand-gold text-xs leading-relaxed"></textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5">City</label>
+                                <input type="text" id="settings-city" placeholder="City" class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-brand-gold text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5">Zip Code</label>
+                                <input type="text" id="settings-zip" placeholder="Zip" class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-brand-gold text-xs">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="w-full py-3 bg-brand-gold text-brand-black font-black text-xs rounded-xl hover:bg-white transition-colors uppercase tracking-wider flex items-center justify-center gap-2 mt-4 shadow-[0_0_15px_rgba(212, 160, 23,0.2)]">
+                            <i data-lucide="save" class="w-4 h-4"></i> Save Profile
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Side: Orders list (2 Cols) -->
+            <div class="lg:col-span-2 space-y-6">
+                <h2 class="text-2xl font-bold text-brand-white mb-6 flex items-center gap-2"><i data-lucide="package" class="text-brand-gold"></i> My Orders</h2>
+                
+                <div id="orders-container" class="space-y-6">
+                    <div class="text-center py-20 bg-white/5 border border-white/10 rounded-3xl">
+                        <i data-lucide="loader" class="w-10 h-10 mx-auto text-brand-gold animate-spin mb-4"></i>
+                        <p class="text-brand-white/50">Fetching your orders...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Review Modal -->
+    <div id="review-modal" class="fixed inset-0 bg-[#0a0a0a]/90 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-[#111] border border-brand-gold/30 rounded-3xl w-full max-w-md p-6 shadow-2xl relative">
+            <button onclick="closeReviewModal()" class="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full text-brand-white/50 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+            <h3 class="text-xl font-black text-brand-white mb-2">Rate Your Order</h3>
+            <p class="text-xs text-brand-white/50 mb-6">How was the food and delivery experience?</p>
+            
+            <form id="review-form" class="space-y-4">
+                <input type="hidden" id="review-order-id">
+                <div class="flex justify-center gap-2 mb-4" id="star-rating-container">
+                    <button type="button" class="star-btn text-white/20 hover:text-brand-gold transition-colors" data-val="1"><i data-lucide="star" class="w-8 h-8 fill-current"></i></button>
+                    <button type="button" class="star-btn text-white/20 hover:text-brand-gold transition-colors" data-val="2"><i data-lucide="star" class="w-8 h-8 fill-current"></i></button>
+                    <button type="button" class="star-btn text-white/20 hover:text-brand-gold transition-colors" data-val="3"><i data-lucide="star" class="w-8 h-8 fill-current"></i></button>
+                    <button type="button" class="star-btn text-white/20 hover:text-brand-gold transition-colors" data-val="4"><i data-lucide="star" class="w-8 h-8 fill-current"></i></button>
+                    <button type="button" class="star-btn text-white/20 hover:text-brand-gold transition-colors" data-val="5"><i data-lucide="star" class="w-8 h-8 fill-current"></i></button>
+                </div>
+                <input type="hidden" id="review-rating" value="5">
+                
+                <textarea id="review-text" rows="3" placeholder="Tell us what you liked (Optional)" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-brand-gold text-xs leading-relaxed"></textarea>
+                
+                <button type="submit" id="submit-review-btn" class="w-full py-3 bg-brand-gold text-brand-black font-black text-sm rounded-xl hover:bg-white transition-colors uppercase tracking-wider mt-2">
+                    Submit Review
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="js/toast.js"></script>
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/notifications.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="js/security.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Display System - Didi's Biryani</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="https://didisbiryani.in/didis_logo.webp">
+    <link rel="apple-touch-icon" href="https://didisbiryani.in/didis_logo.webp">
+    <link rel="shortcut icon" href="https://didisbiryani.in/didis_logo.webp">
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Great+Vibes&family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Flash animation for new orders */
+        @keyframes flashRed {
+            0% { border-color: rgba(212, 160, 23, 0.2); box-shadow: 0 0 0 transparent; }
+            50% { border-color: #c1121f; box-shadow: 0 0 20px rgba(193, 18, 31, 0.5); }
+            100% { border-color: rgba(212, 160, 23, 0.2); box-shadow: 0 0 0 transparent; }
+        }
+        .new-order-flash {
+            animation: flashRed 1s infinite;
+        }
+        
+        /* Grid layout for tickets */
+        .kds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            align-content: start;
+        }
+    </style>
+</head>
+
+<body class="bg-[#050505] text-brand-white h-screen flex flex-col overflow-hidden">
+
+    <!-- ADMIN LOGIN OVERLAY (Reused from admin) -->
+    <div id="admin-login-overlay" class="fixed inset-0 bg-[#0a0a0a] z-[9999] flex flex-col items-center justify-center p-6 hidden">
+        <div class="w-full max-w-md bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-32 -right-32 w-64 h-64 bg-brand-gold/10 rounded-full blur-[100px] pointer-events-none"></div>
+            <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-brand-gold/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-20 h-20 rounded-full overflow-hidden border border-brand-gold/30 shadow-[0_0_20px_rgba(212, 160, 23,0.3)] mb-6">
+                    <img src="didis_logo.webp" alt="Didi's Biryani" class="w-full h-full object-cover">
+                </div>
+
+                <h2 class="text-3xl font-black mb-2 text-center text-brand-white tracking-tight">KDS <span class="text-brand-gold">Access</span></h2>
+                <p class="text-brand-white/50 text-sm mb-8 text-center">Login with admin credentials to access the kitchen display.</p>
+
+                <div class="w-full space-y-4">
+                    <div class="relative">
+                        <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-white/40"></i>
+                        <input type="email" id="login-email" placeholder="Admin Email" class="w-full bg-black/50 border border-white/10 text-white rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:border-brand-gold transition-colors text-sm font-medium">
+                    </div>
+                    
+                    <div class="relative">
+                        <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-white/40"></i>
+                        <input type="password" id="login-password" placeholder="Password" class="w-full bg-black/50 border border-white/10 text-white rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:border-brand-gold transition-colors text-sm font-medium">
+                    </div>
+                    
+                    <button id="login-btn" class="w-full py-3.5 mt-2 bg-brand-gold text-brand-black rounded-xl font-bold text-sm shadow-[0_0_20px_rgba(212,160,23,0.4)] hover:bg-white transition-all flex justify-center items-center gap-2">
+                        <span>Authenticate</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                    
+                    <div id="login-error" class="hidden text-brand-red text-xs font-bold text-center mt-4 bg-brand-red/10 border border-brand-red/20 py-2 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KDS Header -->
+    <header class="bg-[#111] border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full overflow-hidden border border-brand-gold/30">
+                <img src="didis_logo.webp" alt="Logo" class="w-full h-full object-cover">
+            </div>
+            <div>
+                <h1 class="text-xl font-black text-brand-white tracking-tight uppercase">Kitchen Display <span class="text-brand-gold">System</span></h1>
+                <div class="flex items-center gap-2 text-xs font-bold mt-1">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-green-500" id="connection-status">Live</span>
+                    <span class="text-white/30 ml-2" id="current-time">00:00:00</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="toggleFullScreen()" class="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-2">
+                <i data-lucide="maximize" class="w-4 h-4"></i> Full Screen
+            </button>
+            <button id="logout-btn" class="px-4 py-2.5 bg-brand-red/10 text-brand-red border border-brand-red/20 rounded-xl text-xs font-bold hover:bg-brand-red hover:text-white transition-colors flex items-center gap-2">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main KDS Canvas -->
+    <main class="flex-1 overflow-y-auto p-6 relative">
+        <!-- Empty State -->
+        <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none hidden opacity-50">
+            <i data-lucide="utensils-crossed" class="w-24 h-24 text-white/10 mb-4"></i>
+            <h2 class="text-2xl font-black text-white/20 uppercase tracking-widest">No Active Orders</h2>
+        </div>
+
+        <!-- Orders Grid -->
+        <div id="kds-grid" class="kds-grid">
+            <!-- Tickets will be injected here by JS -->
+        </div>
+    </main>
+
+    <!-- Global Toast Component -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] flex flex-col gap-2 pointer-events-none"></div>
+
+    <script type="module" src="js/toast.js"></script>
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/kds.js"></script>
+    <script>
+        // Fullscreen toggle logic
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+        
+        // Update live clock
+        setInterval(() => {
+            document.getElementById('current-time').innerText = new Date().toLocaleTimeString('en-US', { hour12: true });
+        }, 1000);
+    </script>
+</body>
+</html>
