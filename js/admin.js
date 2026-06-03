@@ -873,6 +873,19 @@ window.updateOrderStatus = async (id, status) => {
         }
     }
 
+    // Ping Delivery Boy App
+    if (status === 'Ready for Delivery') {
+        try {
+            fetch('/api/notify-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: id, status: 'ready' })
+            }).catch(e => console.error("Push Notify Error:", e));
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     // Push Notification Trigger
     if (activeOrderObj && activeOrderObj.userId && (status === 'Out for Delivery' || status === 'Delivered')) {
         try {
