@@ -275,6 +275,74 @@ function updateStoreStatusUI() {
     const settingsAutoPrintSelect = document.getElementById('settingsAutoPrintSelect');
     if (settingsAutoPrintSelect) settingsAutoPrintSelect.value = currentStoreSettings.autoPrint === true ? 'true' : 'false';
     if (settingsAddr) settingsAddr.value = currentStoreSettings.address || '';
+    
+    // Store Location Map initialization
+    const settingsLatInput = document.getElementById('settingsStoreLat');
+    const settingsLngInput = document.getElementById('settingsStoreLng');
+    
+    if (settingsLatInput && currentStoreSettings.location) {
+        settingsLatInput.value = currentStoreSettings.location.lat || '';
+    }
+    if (settingsLngInput && currentStoreSettings.location) {
+        settingsLngInput.value = currentStoreSettings.location.lng || '';
+    }
+    
+    if (window.google && document.getElementById('settings-store-map')) {
+        const defaultLocation = (currentStoreSettings.location && currentStoreSettings.location.lat) ? 
+            { lat: currentStoreSettings.location.lat, lng: currentStoreSettings.location.lng } : 
+            { lat: 24.8333, lng: 92.7789 }; // Silchar Default
+            
+        const storeMap = new google.maps.Map(document.getElementById('settings-store-map'), {
+            center: defaultLocation,
+            zoom: 15,
+            disableDefaultUI: true,
+            styles: [
+                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+            ]
+        });
+
+        storeMap.addListener('dragend', () => {
+            const center = storeMap.getCenter();
+            if (settingsLatInput) settingsLatInput.value = center.lat();
+            if (settingsLngInput) settingsLngInput.value = center.lng();
+            
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: center }, (results, status) => {
+                if (status === "OK" && results[0] && settingsAddr) {
+                    settingsAddr.value = results[0].formatted_address;
+                }
+            });
+        });
+
+        const input = document.getElementById('settings-map-search');
+        if (input) {
+            const searchBox = new google.maps.places.SearchBox(input);
+            storeMap.addListener('bounds_changed', () => {
+                searchBox.setBounds(storeMap.getBounds());
+            });
+            searchBox.addListener('places_changed', () => {
+                const places = searchBox.getPlaces();
+                if (places.length == 0) return;
+                
+                const bounds = new google.maps.LatLngBounds();
+                places.forEach(place => {
+                    if (!place.geometry || !place.geometry.location) return;
+                    if (place.geometry.viewport) {
+                        bounds.union(place.geometry.viewport);
+                    } else {
+                        bounds.extend(place.geometry.location);
+                    }
+                });
+                storeMap.fitBounds(bounds);
+                setTimeout(() => google.maps.event.trigger(storeMap, 'dragend'), 500);
+            });
+        }
+    }
+    
     if (settingsAllowedCities) settingsAllowedCities.value = currentStoreSettings.allowedCities || '';
     if (settingsAllowedZips) settingsAllowedZips.value = currentStoreSettings.allowedZips || '';
     if (settingsDel) settingsDel.value = currentStoreSettings.deliveryCharge !== undefined ? currentStoreSettings.deliveryCharge : 40;
@@ -837,7 +905,8 @@ window.confirmOrderRejection = async () => {
     try {
         await updateDoc(doc(db, "orders", pendingRejectOrderId), {
             status: 'Rejected',
-            cancellationReason: finalReason
+            cancellationReason: finalReason,
+            [`statusTimestamps.Rejected`]: new Date().toISOString()
         });
         showToast("Order rejected successfully.", "success");
     } catch (e) {
@@ -861,7 +930,11 @@ window.updateOrderStatus = async (id, status) => {
         return;
     }
 
-    await updateDoc(doc(db, "orders", id), { status });
+    const timestampStr = new Date().toISOString();
+    await updateDoc(doc(db, "orders", id), { 
+        status,
+        [`statusTimestamps.${status}`]: timestampStr
+    });
     const activeOrderObj = allOrders.find(o => o.id === id);
 
     // Thermal Printer Auto-Print
@@ -893,7 +966,8 @@ window.updateOrderStatus = async (id, status) => {
             const userDoc = await getDoc(doc(db, "users", activeOrderObj.userId));
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                if (userData.fcmToken) {
+                const userTokens = Array.isArray(userData.fcmTokens) ? userData.fcmTokens : (userData.fcmToken ? [userData.fcmToken] : []);
+                if (userTokens.length > 0) {
                     const messageTitle = status === 'Out for Delivery' ? '🚚 Order Out for Delivery!' : '✅ Order Delivered!';
                     const messageBody = status === 'Out for Delivery' ? 'Your biryani is on the way!' : 'Enjoy your meal! Thank you for ordering from Didis Biryani.';
 
@@ -906,7 +980,7 @@ window.updateOrderStatus = async (id, status) => {
                             'Authorization': token ? `Bearer ${token}` : ''
                         },
                         body: JSON.stringify({
-                            token: userData.fcmToken,
+                            tokens: userTokens,
                             title: messageTitle,
                             body: messageBody,
                             data: { orderId: id }
@@ -1126,6 +1200,7 @@ function renderAdminOrders() {
                         <button onclick="viewingOrderId='${o.id}';printOrderInvoice()" class="px-3 py-2.5 bg-brand-gold text-brand-black rounded-xl text-xs font-bold hover:bg-white transition-colors" title="Print Slip"><i data-lucide="printer" class="w-4 h-4"></i></button>
                         <select onchange="updateOrderStatus('${o.id}', this.value)" class="flex-1 bg-brand-gold/10 border border-brand-gold text-brand-gold rounded-xl px-2 py-2.5 text-xs font-bold focus:outline-none cursor-pointer text-center appearance-none">
                             ${o.orderType === 'pickup' ? `
+                                <option value="Payment Pending" ${o.status === 'Payment Pending' ? 'selected' : ''} class="text-orange-500">Payment Pending</option>
                                 <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
                                 <option value="Accepted" ${o.status === 'Accepted' ? 'selected' : ''}>Accepted</option>
                                 <option value="Cooking" ${o.status === 'Cooking' ? 'selected' : ''}>Cooking</option>
@@ -1133,6 +1208,7 @@ function renderAdminOrders() {
                                 <option value="Collected" ${o.status === 'Collected' ? 'selected' : ''}>Collected</option>
                                 <option value="Rejected" ${o.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
                             ` : `
+                                <option value="Payment Pending" ${o.status === 'Payment Pending' ? 'selected' : ''} class="text-orange-500">Payment Pending</option>
                                 <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
                                 <option value="Accepted" ${o.status === 'Accepted' ? 'selected' : ''}>Accepted</option>
                                 <option value="Cooking" ${o.status === 'Cooking' ? 'selected' : ''}>Cooking</option>
@@ -1202,12 +1278,12 @@ window.renderAdminCustomers = function renderAdminCustomers() {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 group";
         tr.innerHTML = `
-            <td class="p-4">
+            <td class="p-4 cursor-pointer" onclick="window.openCustomerDetailsModal('${user.id}')">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-brand-gold/20 text-brand-gold flex items-center justify-center font-bold text-xs">
                         ${name.charAt(0).toUpperCase()}
                     </div>
-                    <span class="font-bold text-brand-white text-sm group-hover:text-brand-gold transition-colors">${name}</span>
+                    <span class="font-bold text-brand-white text-sm group-hover:text-brand-gold transition-colors underline decoration-brand-gold/30 underline-offset-4">${name}</span>
                 </div>
             </td>
             <td class="p-4 text-sm text-brand-white/70">${email}</td>
@@ -1238,6 +1314,164 @@ window.renderAdminCustomers = function renderAdminCustomers() {
     // Also update the chat list since we have unique customers here
     renderAdminChatList();
 }
+
+window.closeCustomerDetailsModal = () => {
+    document.getElementById('customer-details-modal').classList.add('hidden');
+};
+
+window.openCustomerDetailsModal = (userId) => {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    // Get basic details
+    const name = user.name || 'Anonymous';
+    const phone = user.phone || 'N/A';
+    const email = user.email || 'N/A';
+    
+    // Get orders
+    let userOrders = allOrders.filter(o => o.userId === userId);
+    userOrders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Newest first
+    
+    const completedOrders = userOrders.filter(o => ['Delivered', 'Collected'].includes(o.status));
+    const activeOrders = userOrders.filter(o => !['Rejected'].includes(o.status));
+    const totalSpent = activeOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const avgOrder = activeOrders.length > 0 ? Math.round(totalSpent / activeOrders.length) : 0;
+    const walletBal = Number(user.walletBalance) || 0;
+
+    let firstOrderDate = user.customerSince || 'N/A';
+    if (userOrders.length > 0) {
+        firstOrderDate = safeFormatDate(userOrders[userOrders.length - 1].timestamp, 'customer_date');
+    }
+
+    // Populate Header
+    document.getElementById('cd-avatar').innerText = name.charAt(0).toUpperCase();
+    document.getElementById('cd-name').innerText = name;
+    document.getElementById('cd-contact').innerText = `${phone} • ${email}`;
+    document.getElementById('cd-since').innerText = `Customer Since: ${firstOrderDate}`;
+
+    // Populate Quick Actions
+    document.getElementById('cd-btn-gift').onclick = () => window.openGiftWalletModal(user.id, name);
+    document.getElementById('cd-btn-whatsapp').href = `https://wa.me/91${phone.replace(/\D/g,'')}`;
+
+    // Populate Quick Stats
+    document.getElementById('cd-stats').innerHTML = `
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+            <span class="text-xs text-brand-white/50 mb-1 uppercase tracking-wider font-bold">Total Orders</span>
+            <span class="text-2xl font-black text-brand-white">${userOrders.length}</span>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+            <span class="text-xs text-brand-white/50 mb-1 uppercase tracking-wider font-bold">Total Spent</span>
+            <span class="text-2xl font-black text-brand-gold">₹${totalSpent}</span>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+            <span class="text-xs text-brand-white/50 mb-1 uppercase tracking-wider font-bold">Avg Order</span>
+            <span class="text-2xl font-black text-brand-gold">₹${avgOrder}</span>
+        </div>
+        <div class="bg-brand-gold/10 border border-brand-gold/30 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-[0_0_15px_rgba(212,160,23,0.1)]">
+            <span class="text-xs text-brand-gold mb-1 uppercase tracking-wider font-bold">Wallet Bal</span>
+            <span class="text-2xl font-black text-brand-white">₹${walletBal}</span>
+        </div>
+    `;
+
+    // Calculate Favorite Items
+    let itemCounts = {};
+    activeOrders.forEach(o => {
+        if (o.items && Array.isArray(o.items)) {
+            o.items.forEach(item => {
+                const baseId = (item.id || '').replace('-addons', '');
+                if (!itemCounts[baseId]) {
+                    itemCounts[baseId] = { name: item.name, count: 0 };
+                }
+                itemCounts[baseId].count += Number(item.quantity || 1);
+            });
+        }
+    });
+
+    const topItems = Object.values(itemCounts).sort((a, b) => b.count - a.count).slice(0, 3);
+    const maxCount = topItems.length > 0 ? topItems[0].count : 1;
+
+    const favItemsContainer = document.getElementById('cd-favorite-items');
+    if (topItems.length > 0) {
+        let favHtml = '';
+        topItems.forEach(item => {
+            const pct = Math.max(10, Math.round((item.count / maxCount) * 100));
+            favHtml += `
+                <div class="relative w-full bg-black/50 rounded-lg overflow-hidden h-10 flex items-center border border-white/5">
+                    <div class="absolute left-0 top-0 bottom-0 bg-brand-gold/20" style="width: ${pct}%"></div>
+                    <div class="absolute left-0 right-0 px-3 flex justify-between items-center z-10">
+                        <span class="text-sm font-bold text-brand-white truncate mr-2">${item.name}</span>
+                        <span class="text-xs font-black text-brand-gold bg-black/50 px-2 py-0.5 rounded-full">${item.count}x</span>
+                    </div>
+                </div>
+            `;
+        });
+        favItemsContainer.innerHTML = favHtml;
+    } else {
+        favItemsContainer.innerHTML = `<p class="text-xs text-brand-white/50 italic py-2 text-center">No item data found.</p>`;
+    }
+
+    // Render Order History Feed
+    const historyContainer = document.getElementById('cd-order-history');
+    if (userOrders.length > 0) {
+        let feedHtml = '';
+        userOrders.forEach(o => {
+            const timePlaced = o.timestamp ? safeFormatDate(o.timestamp, 'datetime') : 'Unknown';
+            let summaryItems = (o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
+            if (summaryItems.length > 50) summaryItems = summaryItems.substring(0, 50) + '...';
+            
+            // Status Color Map
+            const sColors = {
+                'Pending': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+                'Accepted': 'text-green-400 bg-green-400/10 border-green-400/20',
+                'Cooking': 'text-orange-400 bg-orange-400/10 border-orange-400/20',
+                'Ready for Delivery': 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+                'Ready to Collect': 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+                'Out for Delivery': 'text-purple-400 bg-purple-400/10 border-purple-400/20',
+                'Delivered': 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+                'Collected': 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+                'Rejected': 'text-red-400 bg-red-400/10 border-red-400/20'
+            };
+            const sColor = sColors[o.status] || 'text-white/50 bg-white/5 border-white/10';
+
+            // Timeline calculations
+            let tAccepted = o.statusTimestamps && o.statusTimestamps['Accepted'] ? safeFormatDate(o.statusTimestamps['Accepted'], 'time') : null;
+            let tDelivered = o.statusTimestamps && (o.statusTimestamps['Delivered'] || o.statusTimestamps['Collected']) ? safeFormatDate((o.statusTimestamps['Delivered'] || o.statusTimestamps['Collected']), 'time') : null;
+            
+            feedHtml += `
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <div>
+                            <span class="text-sm font-black text-brand-white">Order #${o.orderNumber || o.id.substring(0, 6).toUpperCase()}</span>
+                            <span class="text-xs text-brand-white/50 ml-2">${timePlaced}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-black text-brand-gold">₹${o.total}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border ${sColor}">${o.status}</span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs text-brand-white/70 mb-3 truncate italic">${summaryItems}</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex gap-4 text-[10px] uppercase font-bold tracking-wider text-brand-white/50">
+                            ${tAccepted ? `<div class="flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3 text-green-400"></i> Accepted: ${tAccepted}</div>` : ''}
+                            ${tDelivered ? `<div class="flex items-center gap-1"><i data-lucide="home" class="w-3 h-3 text-brand-gold"></i> Delivered: ${tDelivered}</div>` : ''}
+                        </div>
+                        <button onclick="window.showHistoryDetail('${o.id}')" class="text-xs font-bold text-brand-gold hover:text-white transition-colors flex items-center gap-1">
+                            View <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        historyContainer.innerHTML = feedHtml;
+    } else {
+        historyContainer.innerHTML = `<p class="text-sm text-brand-white/50 italic py-6 text-center">No past orders found.</p>`;
+    }
+
+    if (window.lucide) lucide.createIcons();
+    document.getElementById('customer-details-modal').classList.remove('hidden');
+};
 
 // --- Messages Logic ---
 let activeChatCustomerId = null;
@@ -1479,7 +1713,8 @@ document.getElementById('chat-input-form').addEventListener('submit', async (e) 
         const userDoc = await getDoc(doc(db, "users", activeChatCustomerId));
         if (userDoc.exists()) {
             const userData = userDoc.data();
-            if (userData.fcmToken) {
+            const userTokens = Array.isArray(userData.fcmTokens) ? userData.fcmTokens : (userData.fcmToken ? [userData.fcmToken] : []);
+            if (userTokens.length > 0) {
                 const token = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
                 const pushUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/send-push' : '/api/send-push';
                 fetch(pushUrl, {
@@ -1489,7 +1724,7 @@ document.getElementById('chat-input-form').addEventListener('submit', async (e) 
                         'Authorization': token ? `Bearer ${token}` : ''
                     },
                     body: JSON.stringify({
-                        token: userData.fcmToken,
+                        tokens: userTokens,
                         title: "Message from Didi's Biryani Support",
                         body: text,
                         data: { orderId: activeChatOrderId, type: 'chat' }
@@ -1530,6 +1765,17 @@ window.viewOrderDetails = (id) => {
     // Customer
     document.getElementById('detail-cust-name').innerText = o.customer;
     document.getElementById('detail-cust-address').innerText = o.address;
+    
+    const mapLink = document.getElementById('detail-cust-map-link');
+    if (mapLink) {
+        if (o.location && o.location.lat && o.location.lng) {
+            mapLink.href = `https://www.google.com/maps/search/?api=1&query=${o.location.lat},${o.location.lng}`;
+            mapLink.classList.remove('hidden');
+        } else {
+            mapLink.classList.add('hidden');
+        }
+    }
+    
     document.getElementById('detail-cust-email').innerText = o.email || 'N/A';
     document.getElementById('detail-cust-phone').innerText = o.phone || 'N/A';
     document.getElementById('detail-notes').innerText = o.notes || 'No special instructions provided.';
@@ -1568,16 +1814,71 @@ window.viewOrderDetails = (id) => {
     const whatsappBtn = document.getElementById('btn-admin-whatsapp-pay');
     const waPhoneInput = document.getElementById('admin-custom-wa-phone');
     if (waPayContainer && whatsappBtn && waPhoneInput) {
-        if (o.status !== 'Delivered' && o.status !== 'Collected' && o.status !== 'Rejected' && 
-            o.paymentMethod !== 'Online (Razorpay)' && o.paymentMethod !== 'Direct UPI' &&
-            String(o.paymentMethod || '').toLowerCase() !== 'online' && !String(o.paymentMethod || '').toLowerCase().includes('razorpay')) {
-            
+        const dueAmt = o.amountDue !== undefined ? o.amountDue : o.total;
+        if (o.status !== 'Delivered' && o.status !== 'Collected' && o.status !== 'Rejected' && dueAmt > 0) {
             waPayContainer.classList.remove('hidden');
             waPhoneInput.value = o.phone || '';
-            const dueAmt = o.amountDue !== undefined ? o.amountDue : o.total;
             whatsappBtn.onclick = () => sendWhatsAppPaymentLink(o.id, dueAmt, waPhoneInput.value);
         } else {
             waPayContainer.classList.add('hidden');
+        }
+    }
+
+    // Razorpay Manual Verification Logic
+    const razorpayVerifyContainer = document.getElementById('razorpay-verify-container');
+    const razorpayVerifyBtn = document.getElementById('btn-admin-verify-razorpay');
+    if (razorpayVerifyContainer && razorpayVerifyBtn) {
+        if (o.status === 'Payment Pending' && String(o.paymentMethod || '').toLowerCase().includes('razorpay')) {
+            razorpayVerifyContainer.classList.remove('hidden');
+            razorpayVerifyBtn.onclick = async () => {
+                try {
+                    const btnHtml = razorpayVerifyBtn.innerHTML;
+                    razorpayVerifyBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Verifying...';
+                    if (window.lucide) window.lucide.createIcons();
+                    
+                    const paymentId = o.paymentId;
+                    if (!paymentId) {
+                        showToast("No Razorpay Payment ID found on this order.", "error");
+                        razorpayVerifyBtn.innerHTML = btnHtml;
+                        if (window.lucide) window.lucide.createIcons();
+                        return;
+                    }
+
+                    const token = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
+                    const captureRes = await fetch('/api/verify-payment', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        },
+                        body: JSON.stringify({
+                            paymentId: paymentId,
+                            amount: o.amountDue || o.total
+                        })
+                    });
+
+                    const captureData = await captureRes.json();
+                    if (!captureRes.ok || !captureData.success) {
+                        showToast("Razorpay error: " + (captureData.error || "Payment not fully captured."), "error");
+                    } else {
+                        showToast("Payment Verified & Captured successfully!", "success");
+                        // The webhook or API should update Firestore, but we can do it locally too
+                        await setDoc(doc(db, "orders", o.id), {
+                            status: 'Pending',
+                            [`statusTimestamps.Pending`]: new Date().toISOString()
+                        }, { merge: true });
+                        viewOrderDetails(o.id);
+                    }
+                } catch(e) {
+                    console.error("Verification error", e);
+                    showToast("Error verifying payment.", "error");
+                } finally {
+                    razorpayVerifyBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Verify Razorpay';
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            };
+        } else {
+            razorpayVerifyContainer.classList.add('hidden');
         }
     }
 
@@ -1670,7 +1971,7 @@ window.viewOrderDetails = (id) => {
     const existingWarning = document.getElementById('price-tamper-warning');
     if (existingWarning) existingWarning.remove();
 
-    if (Math.abs(Number(o.total) - expectedTotal) > 5) {
+    if ((expectedTotal - Number(o.total)) > 5) {
         const warningHtml = `<div id="price-tamper-warning" class="bg-red-500 text-white font-bold p-3 text-sm rounded-xl mt-4 mb-4 flex items-center gap-2 animate-pulse"><i data-lucide="alert-triangle" class="w-5 h-5"></i> SECURITY WARNING: PRICE TAMPERING DETECTED! Expected approx ₹${expectedTotal.toFixed(2)} but customer paid ₹${Number(o.total).toFixed(2)}</div>`;
         itemsList.insertAdjacentHTML('beforebegin', warningHtml);
     }
@@ -1694,6 +1995,89 @@ window.viewOrderDetails = (id) => {
             if (dateEl) dateEl.innerText = safeFormatDate(o.review.timestamp, 'datetime');
         } else {
             reviewSection.classList.add('hidden');
+        }
+    }
+
+    // --- Order Timeline Analytics ---
+    const timelineSection = document.getElementById('detail-timeline-section');
+    const analyticsCards = document.getElementById('timeline-analytics-cards');
+    const eventsList = document.getElementById('timeline-events-list');
+
+    if (timelineSection && analyticsCards && eventsList) {
+        if (o.statusTimestamps && Object.keys(o.statusTimestamps).length > 0) {
+            timelineSection.classList.remove('hidden');
+            
+            const flow = [
+                { id: 'Pending', label: 'Order Placed', icon: 'shopping-cart', color: 'text-blue-400' },
+                { id: 'Accepted', label: 'Order Accepted', icon: 'check-circle', color: 'text-green-400' },
+                { id: 'Cooking', label: 'Cooking Started', icon: 'chef-hat', color: 'text-orange-400' },
+                { id: 'Ready for Delivery', label: 'Ready for Delivery', icon: 'package', color: 'text-yellow-400' },
+                { id: 'Ready to Collect', label: 'Ready to Collect', icon: 'package', color: 'text-yellow-400' },
+                { id: 'Out for Delivery', label: 'Out for Delivery', icon: 'bike', color: 'text-purple-400' },
+                { id: 'Delivered', label: 'Delivered', icon: 'home', color: 'text-green-500' },
+                { id: 'Collected', label: 'Collected', icon: 'home', color: 'text-green-500' },
+                { id: 'Rejected', label: 'Rejected', icon: 'x-circle', color: 'text-red-500' }
+            ];
+
+            if (o.statusTimestamps['Payment Pending'] && !o.statusTimestamps['Pending']) {
+                flow.unshift({ id: 'Payment Pending', label: 'Payment Initiated', icon: 'credit-card', color: 'text-gray-400' });
+            }
+
+            let eventsHtml = '';
+            let sortedStamps = [];
+            
+            for (let f of flow) {
+                if (o.statusTimestamps[f.id]) {
+                    sortedStamps.push({
+                        ...f,
+                        time: new Date(o.statusTimestamps[f.id])
+                    });
+                }
+            }
+            
+            sortedStamps.sort((a, b) => a.time - b.time);
+            
+            sortedStamps.forEach((evt) => {
+                const timeStr = safeFormatDate(evt.time.toISOString(), 'time');
+                eventsHtml += `
+                    <div class="relative">
+                        <div class="absolute -left-[31px] w-4 h-4 rounded-full bg-brand-black border-2 border-brand-gold z-10 top-1"></div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-bold text-brand-white flex items-center gap-2"><i data-lucide="${evt.icon}" class="w-4 h-4 ${evt.color}"></i> ${evt.label}</span>
+                            <span class="text-xs text-brand-white/50">${timeStr}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            eventsList.innerHTML = eventsHtml;
+
+            const diffMins = (start, end) => start && end ? Math.round((new Date(end) - new Date(start)) / 60000) : null;
+            
+            const tAccepted = o.statusTimestamps['Accepted'];
+            const tReady = o.statusTimestamps['Ready for Delivery'] || o.statusTimestamps['Ready to Collect'];
+            const tDelivered = o.statusTimestamps['Delivered'] || o.statusTimestamps['Collected'];
+            const tPending = o.statusTimestamps['Pending'] || o.timestamp;
+
+            const prepMins = diffMins(tAccepted, tReady);
+            const deliveryMins = diffMins(tReady, tDelivered);
+            const totalMins = diffMins(tPending, tDelivered);
+
+            analyticsCards.innerHTML = `
+                <div class="bg-black/50 border border-white/10 rounded-xl p-4 flex flex-col justify-center items-center">
+                    <span class="text-xs text-brand-white/50 mb-1 uppercase tracking-wider font-bold">Prep Time</span>
+                    <span class="text-xl font-black ${prepMins !== null ? 'text-brand-gold' : 'text-brand-white/20'}">${prepMins !== null ? prepMins + ' min' : '---'}</span>
+                </div>
+                <div class="bg-black/50 border border-white/10 rounded-xl p-4 flex flex-col justify-center items-center">
+                    <span class="text-xs text-brand-white/50 mb-1 uppercase tracking-wider font-bold">Delivery Time</span>
+                    <span class="text-xl font-black ${deliveryMins !== null ? 'text-brand-gold' : 'text-brand-white/20'}">${deliveryMins !== null ? deliveryMins + ' min' : '---'}</span>
+                </div>
+                <div class="bg-black/50 border border-brand-gold/30 rounded-xl p-4 flex flex-col justify-center items-center shadow-[0_0_15px_rgba(212,160,23,0.1)]">
+                    <span class="text-xs text-brand-gold mb-1 uppercase tracking-wider font-bold">Total Turnaround</span>
+                    <span class="text-xl font-black ${totalMins !== null ? 'text-brand-white' : 'text-brand-white/20'}">${totalMins !== null ? totalMins + ' min' : '---'}</span>
+                </div>
+            `;
+        } else {
+            timelineSection.classList.add('hidden');
         }
     }
 
@@ -2363,6 +2747,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const autoCloseTime = document.getElementById('settingsAutoCloseTime') ? document.getElementById('settingsAutoCloseTime').value : '';
             const assignmentMode = document.getElementById('settingsAssignmentModeSelect').value;
             const address = document.getElementById('settingsStoreAddress').value.trim();
+            const lat = document.getElementById('settingsStoreLat') ? document.getElementById('settingsStoreLat').value : '';
+            const lng = document.getElementById('settingsStoreLng') ? document.getElementById('settingsStoreLng').value : '';
             const allowedCities = document.getElementById('settingsAllowedCities') ? document.getElementById('settingsAllowedCities').value.trim() : '';
             const allowedZips = document.getElementById('settingsAllowedZips') ? document.getElementById('settingsAllowedZips').value.trim() : '';
             const deliveryCharge = Number(document.getElementById('settingsDeliveryCharge').value);
@@ -2387,6 +2773,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     assignmentMode,
                     autoPrint,
                     address,
+                    location: (lat && lng) ? { lat: Number(lat), lng: Number(lng) } : null,
                     allowedCities,
                     allowedZips,
                     deliveryCharge,
@@ -3332,6 +3719,293 @@ window.saveOrderEdits = async () => {
 };
 
 // ==========================================
+// EDIT ORDER ITEMS
+// ==========================================
+
+let editOrderItemsState = [];
+let editOrderOriginalDelivery = 0;
+let editOrderOriginalTax = 0;
+let editOrderOriginalDiscount = 0;
+let editOrderOriginalGrandTotal = 0;
+let editOrderPaymentMethod = '';
+let customizationMode = 'manual';
+
+window.openEditOrderItemsModal = () => {
+    if (!viewingOrderId) return;
+    const o = allOrders.find(ord => ord.id === viewingOrderId);
+    if (!o) return;
+
+    document.getElementById('edit-items-order-id').innerText = `Order #${o.orderNumber || o.id.substring(0, 6).toUpperCase()}`;
+    
+    // Deep copy items
+    editOrderItemsState = JSON.parse(JSON.stringify(o.items || []));
+    editOrderOriginalDelivery = Number(o.deliveryCharge || 0);
+    editOrderOriginalTax = Number(o.taxAmount || 0);
+    editOrderOriginalDiscount = Number(o.discount || 0);
+    editOrderOriginalGrandTotal = Number(o.total || 0);
+    editOrderPaymentMethod = o.paymentMethod || 'COD';
+
+    // Populate Add Item Select
+    const select = document.getElementById('edit-items-add-select');
+    select.innerHTML = '<option value="">-- Select an Item --</option>';
+    allMenu.forEach(item => {
+        select.innerHTML += `<option value="${item.id}">${item.name} - ₹${item.price}</option>`;
+    });
+
+    renderEditOrderItems();
+    window.showModal('edit-order-items-modal');
+};
+
+function renderEditOrderItems() {
+    const list = document.getElementById('edit-items-list');
+    list.innerHTML = '';
+    let newSubtotal = 0;
+
+    editOrderItemsState.forEach((i, index) => {
+        let addonsPrice = 0;
+        let addonNames = [];
+        if (i.addonDetails && i.addonDetails.length > 0) {
+            i.addonDetails.forEach(ad => {
+                addonsPrice += Number(ad.price);
+                addonNames.push(ad.name);
+            });
+        }
+        const itemPrice = Number(i.price) + addonsPrice;
+        const lineTotal = itemPrice * Number(i.quantity);
+        newSubtotal += lineTotal;
+
+        list.innerHTML += `
+            <div class="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-3">
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-brand-white">${i.name} <span class="text-brand-gold font-normal text-xs ml-1">${i.variantLabel ? `(${i.variantLabel})` : ''}</span></p>
+                    ${addonNames.length > 0 ? `<p class="text-[10px] text-brand-white/50">+ ${addonNames.join(', ')}</p>` : ''}
+                    <p class="text-xs text-brand-white/70 mt-1">₹${itemPrice} each</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 bg-black/50 rounded-lg px-2 py-1">
+                        <button onclick="updateEditItemQty(${index}, -1)" class="text-brand-white hover:text-brand-gold px-1">-</button>
+                        <span class="text-sm font-bold w-4 text-center">${i.quantity}</span>
+                        <button onclick="updateEditItemQty(${index}, 1)" class="text-brand-white hover:text-brand-gold px-1">+</button>
+                    </div>
+                    <span class="text-sm font-bold text-brand-gold w-16 text-right">₹${lineTotal}</span>
+                    <button onclick="editExistingItemCustomization(${index})" class="text-brand-white/50 hover:text-brand-gold p-1 ml-2" title="Edit Customizations">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="removeEditItem(${index})" class="text-brand-red hover:text-red-400 p-1">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    if (editOrderItemsState.length === 0) {
+        list.innerHTML = `<p class="text-xs text-brand-white/50 italic py-2">No items in order.</p>`;
+    }
+
+    const newGrandTotal = newSubtotal + editOrderOriginalDelivery + editOrderOriginalTax - editOrderOriginalDiscount;
+
+    document.getElementById('edit-items-delivery').innerText = `₹${editOrderOriginalDelivery}`;
+    document.getElementById('edit-items-tax').innerText = `₹${editOrderOriginalTax}`;
+    document.getElementById('edit-items-discount').innerText = `-₹${editOrderOriginalDiscount}`;
+    document.getElementById('edit-items-total').innerText = `₹${newGrandTotal > 0 ? newGrandTotal : 0}`;
+    
+    // Payment Difference UI
+    const diffContainer = document.getElementById('edit-items-payment-diff');
+    if (diffContainer) {
+        diffContainer.classList.remove('hidden');
+        const diff = (newGrandTotal > 0 ? newGrandTotal : 0) - editOrderOriginalGrandTotal;
+        const isOnline = !String(editOrderPaymentMethod).toLowerCase().includes('cod') && !String(editOrderPaymentMethod).toLowerCase().includes('cash');
+        
+        let diffHtml = `<div class="mb-1 text-white/50 text-xs font-normal">Original: ₹${editOrderOriginalGrandTotal} | New: ₹${newGrandTotal > 0 ? newGrandTotal : 0}</div>`;
+        
+        if (diff > 0) {
+            diffHtml += `<span class="text-green-400">Extra Amount to Collect: +₹${diff}</span>`;
+            diffContainer.className = 'mt-4 p-3 rounded-xl border border-green-500/30 bg-green-500/10 text-center font-bold text-sm';
+        } else if (diff < 0) {
+            diffHtml += `<span class="text-red-400">Amount to Refund: -₹${Math.abs(diff)}</span>`;
+            diffContainer.className = 'mt-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-center font-bold text-sm';
+        } else {
+            diffHtml += `<span class="text-brand-white">No Payment Difference</span>`;
+            diffContainer.className = 'mt-4 p-3 rounded-xl border border-white/10 bg-white/5 text-center font-bold text-sm';
+        }
+        
+        if (!isOnline) {
+             diffHtml += `<div class="mt-1 text-brand-gold text-[10px] font-black uppercase tracking-wider">Cash on Delivery Order</div>`;
+        } else {
+             diffHtml += `<div class="mt-1 text-brand-gold text-[10px] font-black uppercase tracking-wider">Online Paid Order</div>`;
+        }
+        
+        diffContainer.innerHTML = diffHtml;
+    }
+    
+    if (window.lucide) lucide.createIcons();
+}
+
+window.updateEditItemQty = (index, delta) => {
+    if (editOrderItemsState[index]) {
+        editOrderItemsState[index].quantity += delta;
+        if (editOrderItemsState[index].quantity <= 0) {
+            editOrderItemsState.splice(index, 1);
+        }
+        renderEditOrderItems();
+    }
+};
+
+window.removeEditItem = (index) => {
+    editOrderItemsState.splice(index, 1);
+    renderEditOrderItems();
+};
+
+let editExistingItemIndex = null;
+
+window.editExistingItemCustomization = (index) => {
+    const orderItem = editOrderItemsState[index];
+    if (!orderItem) return;
+    
+    // For addons-only items, we map back to the original item by removing '-addons'
+    const originalId = orderItem.id.replace('-addons', '');
+    const menuItem = allMenu.find(m => m.id === originalId);
+    
+    if (!menuItem) {
+        showToast("Original menu item not found for editing.", "error");
+        return;
+    }
+
+    const hasVariants = menuItem.variants && menuItem.variants.length > 0;
+    const hasCustomizations = menuItem.customizations && menuItem.customizations.length > 0;
+
+    if (hasVariants || hasCustomizations) {
+        customizationMode = 'edit-existing-item';
+        editExistingItemIndex = index;
+        openManualCustomizationModal(menuItem);
+        // Pre-fill logic could be added here, but for now we let the user re-select
+    } else {
+        showToast("This item does not have customizations.", "info");
+    }
+};
+
+window.addEditOrderItem = () => {
+    const select = document.getElementById('edit-items-add-select');
+    const itemId = select.value;
+    if (!itemId) return;
+
+    const menuItem = allMenu.find(m => m.id === itemId);
+    if (!menuItem) return;
+
+    const hasVariants = menuItem.variants && menuItem.variants.length > 0;
+    const hasCustomizations = menuItem.customizations && menuItem.customizations.length > 0;
+
+    if (hasVariants || hasCustomizations) {
+        customizationMode = 'edit-order';
+        openManualCustomizationModal(menuItem);
+        select.value = '';
+        return;
+    }
+
+    // Check if item already exists in edit list without addons/variants
+    const existingIndex = editOrderItemsState.findIndex(i => i.id === itemId && !i.variantLabel && (!i.addonDetails || i.addonDetails.length === 0));
+    
+    if (existingIndex > -1) {
+        editOrderItemsState[existingIndex].quantity += 1;
+    } else {
+        editOrderItemsState.push({
+            id: menuItem.id,
+            name: menuItem.name,
+            price: menuItem.price,
+            quantity: 1,
+            image: menuItem.image || '',
+            category: menuItem.category || 'Other'
+        });
+    }
+    
+    select.value = '';
+    renderEditOrderItems();
+};
+
+window.saveEditOrderItems = async (event) => {
+    if (!viewingOrderId) return;
+    if (editOrderItemsState.length === 0) {
+        showToast("Order must have at least one item.", "error");
+        return;
+    }
+
+    let newSubtotal = 0;
+    editOrderItemsState.forEach(i => {
+        let addonsPrice = 0;
+        if (i.addonDetails && i.addonDetails.length > 0) {
+            i.addonDetails.forEach(ad => addonsPrice += Number(ad.price));
+        }
+        newSubtotal += (Number(i.price) + addonsPrice) * Number(i.quantity);
+    });
+
+    const newGrandTotal = newSubtotal + editOrderOriginalDelivery + editOrderOriginalTax - editOrderOriginalDiscount;
+    const finalTotal = newGrandTotal > 0 ? newGrandTotal : 0;
+    
+    // We also need to get the original order to recalculate amountDue properly
+    const o = allOrders.find(ord => ord.id === viewingOrderId);
+    if (!o) return;
+    
+    // Amount Due Logic
+    let newAmountDue = finalTotal;
+    const isOnline = !String(editOrderPaymentMethod).toLowerCase().includes('cod') && !String(editOrderPaymentMethod).toLowerCase().includes('cash');
+    
+    if (!isOnline) {
+        // For Cash On Delivery, they haven't paid anything online yet, so amountDue is always the FULL new total.
+        newAmountDue = finalTotal;
+    } else {
+        // For Online Paid orders, they have already paid the original total.
+        // If amountDue wasn't updated to 0 previously (due to old logic), we assume it should have been 0.
+        let originalAmountDue = o.amountDue !== undefined ? Number(o.amountDue) : 0;
+        
+        // If originalAmountDue is exactly equal to the old total, it means verify-payment didn't set it to 0. 
+        // We auto-correct it to 0 here.
+        if (originalAmountDue === editOrderOriginalGrandTotal) {
+            originalAmountDue = 0;
+        }
+        
+        const diff = finalTotal - editOrderOriginalGrandTotal;
+        newAmountDue = Math.max(0, originalAmountDue + diff);
+    }
+
+    const btn = event ? event.currentTarget : document.querySelector('button[onclick*="saveEditOrderItems"]');
+    let originalText = "Save Order";
+    if (btn) {
+        originalText = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Saving...';
+        btn.disabled = true;
+    }
+
+    try {
+        await updateDoc(doc(db, "orders", viewingOrderId), {
+            items: editOrderItemsState,
+            total: finalTotal,
+            subtotal: newSubtotal,
+            amountDue: newAmountDue
+        });
+        
+        showToast("Order items updated successfully!", "success");
+        window.hideModal('edit-order-items-modal');
+
+        // Re-render
+        if (!document.getElementById('history-detail-modal').classList.contains('hidden')) {
+            if (typeof showHistoryDetail === 'function') showHistoryDetail(viewingOrderId);
+        } else {
+            if (typeof viewOrderDetails === 'function') viewOrderDetails(viewingOrderId);
+        }
+    } catch (e) {
+        console.error("Error updating order items:", e);
+        showToast("Failed to update items. Check permissions.", "error");
+    } finally {
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+};
+
+// ==========================================
 // CUSTOMER WALLET & LOYALTY CONTROLS
 // ==========================================
 
@@ -3667,6 +4341,9 @@ window.openManualCustomizationModal = (item) => {
         });
     }
     
+    const addonsOnlyCb = document.getElementById('manual-cust-addons-only');
+    if(addonsOnlyCb) addonsOnlyCb.checked = false; // Reset checkbox
+
     calculateManualCustTotal();
     
     const modal = document.getElementById('manual-customization-modal');
@@ -3679,6 +4356,7 @@ window.closeManualCustomizationModal = () => {
     const modal = document.getElementById('manual-customization-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    customizationMode = 'manual';
 };
 
 window.selectManualVariant = (radioEl) => {
@@ -3735,7 +4413,11 @@ window.updateManualCustQty = (change) => {
 };
 
 window.calculateManualCustTotal = () => {
-    let basePrice = manualCustSelectedVariantPrice !== null ? manualCustSelectedVariantPrice : Number(manualCustItem.price);
+    const addonsOnlyCb = document.getElementById('manual-cust-addons-only');
+    const isAddonsOnly = addonsOnlyCb && addonsOnlyCb.checked;
+    
+    let basePrice = isAddonsOnly ? 0 : (manualCustSelectedVariantPrice !== null ? manualCustSelectedVariantPrice : Number(manualCustItem.price));
+    
     let addonsTotal = 0;
     document.querySelectorAll('.manual-addon-qty').forEach(span => {
         const qty = parseInt(span.innerText) || 0;
@@ -3746,6 +4428,10 @@ window.calculateManualCustTotal = () => {
     document.getElementById('manual-cust-total').innerText = '₹' + finalTotal.toFixed(2);
     return finalTotal;
 };
+
+// Expose alias for onchange handler in html
+window.updateManualCustPrice = window.calculateManualCustTotal;
+
 
 window.confirmManualCustomization = () => {
     const customizations = {};
@@ -3782,11 +4468,18 @@ window.confirmManualCustomization = () => {
         }
     });
     
-    const combinedUnitPrice = (manualCustSelectedVariantPrice !== null ? manualCustSelectedVariantPrice : Number(manualCustItem.price)) + addonsCost;
+    const addonsOnlyCb = document.getElementById('manual-cust-addons-only');
+    const isAddonsOnly = addonsOnlyCb && addonsOnlyCb.checked;
+
+    const basePrice = isAddonsOnly ? 0 : (manualCustSelectedVariantPrice !== null ? manualCustSelectedVariantPrice : Number(manualCustItem.price));
+    const combinedUnitPrice = basePrice + addonsCost;
     
-    manualCart.push({
-        id: manualCustItem.id,
-        name: manualCustItem.name,
+    const finalName = isAddonsOnly ? `${manualCustItem.name} (Customizations Only)` : manualCustItem.name;
+    const finalVariantLabel = isAddonsOnly ? null : variantLabel;
+
+    const newItemObj = {
+        id: manualCustItem.id + (isAddonsOnly ? '-addons' : ''),
+        name: finalName,
         price: combinedUnitPrice,
         quantity: manualCustQty,
         customizations: customizations,
@@ -3794,15 +4487,33 @@ window.confirmManualCustomization = () => {
         image: manualCustItem.image || '',
         category: manualCustItem.category || '',
         isVeg: manualCustItem.isVeg || false,
-        originalPrice: manualCustItem.originalPrice ? Number(manualCustItem.originalPrice) : null,
-        variantLabel: variantLabel,
-        quantityLabel: manualCustItem.quantityLabel || null
-    });
-    
-    showToast(`Added ${manualCustItem.name} to order!`, "success");
-    closeManualCustomizationModal();
-    document.getElementById('manualMenuSelect').value = '';
-    renderManualCart();
+        originalPrice: isAddonsOnly ? null : (manualCustItem.originalPrice ? Number(manualCustItem.originalPrice) : null),
+        variantLabel: finalVariantLabel,
+        quantityLabel: isAddonsOnly ? null : (manualCustItem.quantityLabel || null)
+    };
+
+    if (customizationMode === 'edit-order') {
+        editOrderItemsState.push(newItemObj);
+        showToast(`Added ${manualCustItem.name} to order edit!`, "success");
+        closeManualCustomizationModal();
+        customizationMode = 'manual'; // reset
+        renderEditOrderItems();
+    } else if (customizationMode === 'edit-existing-item') {
+        if (editExistingItemIndex !== null && editOrderItemsState[editExistingItemIndex]) {
+            editOrderItemsState[editExistingItemIndex] = newItemObj;
+            showToast(`Updated ${manualCustItem.name}!`, "success");
+        }
+        closeManualCustomizationModal();
+        customizationMode = 'manual'; // reset
+        editExistingItemIndex = null;
+        renderEditOrderItems();
+    } else {
+        manualCart.push(newItemObj);
+        showToast(`Added ${manualCustItem.name} to order!`, "success");
+        closeManualCustomizationModal();
+        document.getElementById('manualMenuSelect').value = '';
+        renderManualCart();
+    }
 };
 
 window.addManualItem = () => {
@@ -4088,11 +4799,15 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Fetch all users
                 const usersSnap = await getDocs(collection(db, "users"));
-                const fcmTokens = [];
+                const tokenSet = new Set();
                 usersSnap.forEach(doc => {
                     const data = doc.data();
-                    if (data.fcmToken) fcmTokens.push(data.fcmToken);
+                    if (data.fcmToken) tokenSet.add(data.fcmToken);
+                    if (Array.isArray(data.fcmTokens)) {
+                        data.fcmTokens.forEach(t => tokenSet.add(t));
+                    }
                 });
+                const fcmTokens = Array.from(tokenSet);
 
                 if (fcmTokens.length === 0) {
                     showToast("No customers have registered for push notifications yet.", "error");

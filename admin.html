@@ -23,6 +23,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDac0HRwWL2pvJZCO3TOE6rwwl_FuYpfbc&libraries=places"></script>
 
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
@@ -696,6 +697,12 @@
                 class="flex items-center gap-4 self-start sm:self-auto flex-wrap"
               >
                 <button
+                  onclick="openEditOrderItemsModal()"
+                  class="px-4 py-2 bg-brand-gold/10 text-brand-gold border border-brand-gold/20 text-xs font-bold rounded-lg hover:bg-brand-gold hover:text-black transition-colors flex items-center gap-2"
+                >
+                  <i data-lucide="shopping-bag" class="w-4 h-4"></i> Edit Items
+                </button>
+                <button
                   onclick="openEditOrderModal()"
                   class="px-4 py-2 bg-white/10 text-brand-white text-xs font-bold rounded-lg hover:bg-brand-gold hover:text-black transition-colors flex items-center gap-2"
                 >
@@ -732,12 +739,13 @@
                   ---
                 </p>
                 <p
-                  class="text-xs text-brand-white/60 mb-3"
+                  class="text-xs text-brand-white/60 mb-1"
                   id="detail-cust-address"
                 >
                   ---
                 </p>
-                <p class="text-xs font-bold text-brand-white mb-1">Email</p>
+                <a id="detail-cust-map-link" href="#" target="_blank" class="hidden text-[10px] text-brand-gold font-bold hover:underline mb-3 inline-flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> View Customer Pin on Map</a>
+                <p class="text-xs font-bold text-brand-white mb-1 mt-2">Email</p>
                 <p
                   class="text-xs text-brand-white/60 mb-3"
                   id="detail-cust-email"
@@ -853,6 +861,15 @@
                   </div>
                 </div>
 
+                <div id="razorpay-verify-container" class="hidden w-full mb-3">
+                  <button
+                    id="btn-admin-verify-razorpay"
+                    class="w-full px-3 py-2 bg-blue-500 text-white font-bold text-xs rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:bg-white hover:text-blue-500 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Verify Razorpay
+                  </button>
+                </div>
+
                 <select
                   id="assign-delivery-boy-select"
                   onchange="assignDeliveryBoy(this.value)"
@@ -942,6 +959,24 @@
                     >
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <!-- Order Timeline Analytics -->
+            <div id="detail-timeline-section" class="mt-8 border border-white/10 rounded-2xl p-6 bg-white/5 hidden">
+              <h3 class="text-sm font-bold text-brand-white mb-6 flex items-center gap-2">
+                <i data-lucide="clock" class="w-4 h-4 text-brand-gold"></i>
+                Order Timeline Analytics
+              </h3>
+              
+              <!-- Analytics Summary Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" id="timeline-analytics-cards">
+                 <!-- Injected by JS -->
+              </div>
+
+              <!-- Vertical Timeline -->
+              <div class="relative pl-6 border-l-2 border-white/10 space-y-6 ml-2" id="timeline-events-list">
+                 <!-- Injected by JS -->
               </div>
             </div>
 
@@ -3071,6 +3106,20 @@
                     class="w-full bg-[#111] border border-white/10 text-white rounded-xl p-3 focus:outline-none focus:border-brand-gold"
                   ></textarea>
                 </div>
+                
+                <div class="space-y-1 mt-2">
+                  <label class="text-[10px] text-brand-white/50 uppercase font-bold tracking-widest pl-2">Pinpoint Store Exact Location</label>
+                  <input type="text" id="settings-map-search" placeholder="Search area to pinpoint store..." class="w-full bg-[#111] border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-brand-gold text-sm mb-2" />
+                  <div class="relative w-full h-48 rounded-xl overflow-hidden border border-white/10">
+                      <div id="settings-store-map" class="w-full h-full"></div>
+                      <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                          <i data-lucide="map-pin" class="w-8 h-8 text-brand-gold animate-bounce fill-brand-gold" style="padding-bottom: 16px;"></i>
+                      </div>
+                  </div>
+                  <input type="hidden" id="settingsStoreLat" />
+                  <input type="hidden" id="settingsStoreLng" />
+                  <p class="text-[10px] text-brand-gold font-bold text-center mt-1">Drag map to set exact restaurant location</p>
+                </div>
 
                 <div class="space-y-3 pt-3 border-t border-white/10">
                   <h4 class="text-sm font-bold text-brand-white">
@@ -4925,6 +4974,106 @@
       </div>
     </div>
 
+    <!-- Edit Order Items Modal -->
+    <div
+      id="edit-order-items-modal"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] hidden items-center justify-center p-4"
+    >
+      <div
+        class="glass border border-brand-gold/20 rounded-3xl w-full max-w-2xl overflow-hidden shadow-[0_0_50px_rgba(212, 160, 23,0.15)] animate-slide-up relative flex flex-col max-h-[90vh]"
+      >
+        <div
+          class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-gold to-transparent opacity-50"
+        ></div>
+
+        <div
+          class="p-6 border-b border-white/10 flex justify-between items-center bg-black/40 shrink-0"
+        >
+          <div>
+            <h3 class="text-lg font-black text-brand-white tracking-wide">
+              Edit Order Items
+            </h3>
+            <p class="text-xs text-brand-white/50 mt-0.5" id="edit-items-order-id">
+              Order #---
+            </p>
+          </div>
+          <button
+            onclick="window.hideModal('edit-order-items-modal')"
+            class="p-2 bg-white/5 hover:bg-white/10 rounded-full text-brand-white/50 hover:text-white transition-colors"
+          >
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto hide-scrollbar flex-1 space-y-6">
+          
+          <div class="space-y-4">
+            <h4 class="text-xs font-bold text-brand-white/50 uppercase tracking-widest">Current Items</h4>
+            <div id="edit-items-list" class="space-y-3">
+                <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-white/10 space-y-4">
+            <h4 class="text-xs font-bold text-brand-white/50 uppercase tracking-widest">Add New Item</h4>
+            <div class="flex gap-3">
+              <select
+                id="edit-items-add-select"
+                class="flex-1 bg-black/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-brand-gold text-sm"
+              >
+                <option value="">-- Select an Item --</option>
+              </select>
+              <button
+                onclick="addEditOrderItem()"
+                class="px-6 py-3 bg-white/10 text-brand-white font-bold rounded-xl hover:bg-brand-gold hover:text-black transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div class="pt-6 border-t border-white/10 space-y-2 text-sm">
+            <div class="flex justify-between text-brand-white/70">
+              <span>Delivery Charge</span>
+              <span id="edit-items-delivery">₹0</span>
+            </div>
+            <div class="flex justify-between text-brand-white/70">
+              <span>Taxes / Packing</span>
+              <span id="edit-items-tax">₹0</span>
+            </div>
+            <div class="flex justify-between text-brand-white/70">
+              <span>Discount</span>
+              <span id="edit-items-discount" class="text-brand-gold">-₹0</span>
+            </div>
+            <div class="flex justify-between font-black text-brand-gold pt-2 border-t border-white/10 mt-2 text-lg">
+              <span>New Grand Total</span>
+              <span id="edit-items-total">₹0</span>
+            </div>
+            <div id="edit-items-payment-diff" class="mt-4 p-3 rounded-xl border hidden text-center font-bold text-sm">
+            </div>
+          </div>
+
+        </div>
+
+        <div
+          class="p-6 bg-black/40 border-t border-white/5 flex justify-end gap-3 shrink-0"
+        >
+          <button
+            onclick="window.hideModal('edit-order-items-modal')"
+            class="px-6 py-3 border border-white/10 text-brand-white hover:bg-white/5 text-xs font-black rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onclick="saveEditOrderItems()"
+            class="px-6 py-3 bg-brand-gold text-brand-black font-black text-xs rounded-xl hover:bg-white transition-all shadow-[0_0_15px_rgba(212, 160, 23,0.3)] flex items-center gap-2"
+          >
+            <i data-lucide="save" class="w-4 h-4"></i> Save Order
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Manual Order Customization Modal -->
     <div
       id="manual-customization-modal"
@@ -4968,6 +5117,14 @@
           id="manual-cust-content"
         >
           <!-- Dynamically populated Size Variants / portion options and Extra Addons -->
+        </div>
+
+        <!-- Addons Only Checkbox -->
+        <div class="px-6 pb-4">
+            <label class="flex items-center gap-2 text-sm text-brand-white/80 cursor-pointer">
+                <input type="checkbox" id="manual-cust-addons-only" onchange="updateManualCustPrice()" class="w-4 h-4 accent-brand-gold bg-black/40 border border-white/20 rounded">
+                <span>Add <strong class="text-brand-gold">only</strong> customizations (skip base item)</span>
+            </label>
         </div>
 
         <div
@@ -5025,9 +5182,80 @@
       </div>
     </div>
 
+    <!-- Customer Details Modal -->
+    <div
+      id="customer-details-modal"
+      class="fixed inset-0 bg-black/80 z-50 hidden backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300"
+    >
+      <div
+        class="bg-[#111] border border-brand-gold/30 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-[0_0_50px_rgba(212,160,23,0.15)]"
+      >
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-white/10 bg-black/40">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-full bg-brand-gold/20 border border-brand-gold/50 flex items-center justify-center text-brand-gold font-black text-xl shadow-[0_0_15px_rgba(212,160,23,0.2)]" id="cd-avatar">
+              U
+            </div>
+            <div>
+              <h2 class="text-2xl font-black text-brand-white" id="cd-name">Customer Name</h2>
+              <p class="text-xs font-medium text-brand-white/50" id="cd-contact">+91 0000000000 • email@example.com</p>
+              <p class="text-[10px] text-brand-gold mt-1 uppercase tracking-widest font-bold" id="cd-since">Customer Since: N/A</p>
+            </div>
+          </div>
+          <button
+            onclick="closeCustomerDetailsModal()"
+            class="p-2 text-brand-white/50 hover:text-white bg-white/5 rounded-lg transition-colors"
+          >
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto hide-scrollbar p-4 md:p-6 space-y-6">
+          
+          <!-- Quick Stats Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="cd-stats">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Top Items & Analytics Row -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Favorite Items -->
+            <div class="md:col-span-2 bg-white/5 border border-white/10 rounded-xl p-5">
+              <h3 class="text-sm font-bold text-brand-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="star" class="w-4 h-4 text-brand-gold"></i> Favorite Items
+              </h3>
+              <div id="cd-favorite-items" class="space-y-3">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col justify-center gap-3">
+              <h3 class="text-sm font-bold text-brand-white mb-2 uppercase tracking-wider text-center">Quick Actions</h3>
+              <button id="cd-btn-gift" class="w-full py-3 bg-brand-gold/10 hover:bg-brand-gold text-brand-gold hover:text-black border border-brand-gold/30 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
+                <i data-lucide="gift" class="w-4 h-4"></i> Gift Wallet Cash
+              </button>
+              <a id="cd-btn-whatsapp" target="_blank" href="#" class="w-full py-3 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-black border border-green-500/30 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
+                <i data-lucide="message-circle" class="w-4 h-4"></i> WhatsApp
+              </a>
+            </div>
+          </div>
+
+          <!-- Order History Feed -->
+          <div>
+            <h3 class="text-sm font-bold text-brand-white mb-4 uppercase tracking-wider border-b border-white/10 pb-2">Order History</h3>
+            <div id="cd-order-history" class="space-y-4">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="js/toast.js"></script>
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/printer-helper.js"></script>
-    <script type="module" src="js/admin.js?v=2"></script>
+    <script type="module" src="js/admin.js?v=4"></script>
   </body>
 </html>

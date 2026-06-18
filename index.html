@@ -80,6 +80,8 @@
 
 
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDac0HRwWL2pvJZCO3TOE6rwwl_FuYpfbc&libraries=places"></script>
 
     <!-- Google tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-M7MKZF8RLW"></script>
@@ -509,7 +511,31 @@
                 <div id="categories-container"
                     class="flex overflow-x-auto gap-6 pb-2 snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar"
                     style="scrollbar-width: none;">
-                    <!-- Categories injected by app.js -->
+                    <!-- Skeleton Categories -->
+                    <div class="flex flex-col items-center gap-3 flex-shrink-0 animate-pulse">
+                        <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/5"></div>
+                        <div class="w-16 h-4 bg-white/10 rounded"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-3 flex-shrink-0 animate-pulse">
+                        <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/5"></div>
+                        <div class="w-16 h-4 bg-white/10 rounded"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-3 flex-shrink-0 animate-pulse">
+                        <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/5"></div>
+                        <div class="w-16 h-4 bg-white/10 rounded"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-3 flex-shrink-0 animate-pulse hidden sm:flex">
+                        <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/5"></div>
+                        <div class="w-16 h-4 bg-white/10 rounded"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-3 flex-shrink-0 animate-pulse hidden md:flex">
+                        <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/5"></div>
+                        <div class="w-16 h-4 bg-white/10 rounded"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-3 flex-shrink-0 animate-pulse hidden lg:flex">
+                        <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/5"></div>
+                        <div class="w-16 h-4 bg-white/10 rounded"></div>
+                    </div>
                 </div>
             </div>
 
@@ -533,6 +559,10 @@
                     <span
                         class="w-3 h-3 flex items-center justify-center bg-white rounded-sm border border-green-600"><span
                             class="w-1 h-1 rounded-full bg-green-600"></span></span> Pure Veg
+                </button>
+                <button onclick="toggleFilter('favorites')" id="filter-pill-favorites"
+                    class="hidden filter-pill px-4 py-2 rounded-xl border border-white/10 text-xs font-bold text-brand-white/70 hover:border-brand-gold hover:text-white transition-all flex-shrink-0 flex items-center gap-1.5 bg-white/5">
+                    <i data-lucide="heart" class="w-3.5 h-3.5 fill-current text-brand-red"></i> Favorites
                 </button>
 
                 <div class="ml-auto flex items-center gap-2 flex-shrink-0 pl-4 border-l border-white/10">
@@ -571,7 +601,151 @@
 
                 <!-- Menu Grid -->
                 <div id="menu-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <div class="text-brand-white/50 col-span-full text-center py-20">Loading delicious items...</div>
+                    <!-- Skeleton Loading Cards -->
+                    <div class="group menu-card-premium bg-[#121212] border border-white/5 rounded-3xl overflow-hidden flex flex-col relative animate-pulse">
+                        <div class="relative w-full h-48 bg-white/5"></div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div class="h-5 bg-white/10 rounded w-2/3"></div>
+                                <div class="h-4 bg-white/10 rounded w-8"></div>
+                            </div>
+                            <div class="h-3 bg-white/10 rounded w-full mb-1"></div>
+                            <div class="h-3 bg-white/10 rounded w-5/6 mb-4 flex-grow"></div>
+                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="h-3 bg-white/10 rounded w-16"></div>
+                                    <div class="h-5 bg-white/10 rounded w-12"></div>
+                                </div>
+                                <div class="h-8 bg-white/10 rounded-xl w-16"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group menu-card-premium bg-[#121212] border border-white/5 rounded-3xl overflow-hidden flex flex-col relative animate-pulse hidden sm:flex">
+                        <div class="relative w-full h-48 bg-white/5"></div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div class="h-5 bg-white/10 rounded w-2/3"></div>
+                                <div class="h-4 bg-white/10 rounded w-8"></div>
+                            </div>
+                            <div class="h-3 bg-white/10 rounded w-full mb-1"></div>
+                            <div class="h-3 bg-white/10 rounded w-5/6 mb-4 flex-grow"></div>
+                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="h-3 bg-white/10 rounded w-16"></div>
+                                    <div class="h-5 bg-white/10 rounded w-12"></div>
+                                </div>
+                                <div class="h-8 bg-white/10 rounded-xl w-16"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group menu-card-premium bg-[#121212] border border-white/5 rounded-3xl overflow-hidden flex flex-col relative animate-pulse hidden lg:flex">
+                        <div class="relative w-full h-48 bg-white/5"></div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div class="h-5 bg-white/10 rounded w-2/3"></div>
+                                <div class="h-4 bg-white/10 rounded w-8"></div>
+                            </div>
+                            <div class="h-3 bg-white/10 rounded w-full mb-1"></div>
+                            <div class="h-3 bg-white/10 rounded w-5/6 mb-4 flex-grow"></div>
+                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="h-3 bg-white/10 rounded w-16"></div>
+                                    <div class="h-5 bg-white/10 rounded w-12"></div>
+                                </div>
+                                <div class="h-8 bg-white/10 rounded-xl w-16"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group menu-card-premium bg-[#121212] border border-white/5 rounded-3xl overflow-hidden flex flex-col relative animate-pulse hidden xl:flex">
+                        <div class="relative w-full h-48 bg-white/5"></div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div class="h-5 bg-white/10 rounded w-2/3"></div>
+                                <div class="h-4 bg-white/10 rounded w-8"></div>
+                            </div>
+                            <div class="h-3 bg-white/10 rounded w-full mb-1"></div>
+                            <div class="h-3 bg-white/10 rounded w-5/6 mb-4 flex-grow"></div>
+                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="h-3 bg-white/10 rounded w-16"></div>
+                                    <div class="h-5 bg-white/10 rounded w-12"></div>
+                                </div>
+                                <div class="h-8 bg-white/10 rounded-xl w-16"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group menu-card-premium bg-[#121212] border border-white/5 rounded-3xl overflow-hidden flex flex-col relative animate-pulse hidden xl:flex">
+                        <div class="relative w-full h-48 bg-white/5"></div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div class="h-5 bg-white/10 rounded w-2/3"></div>
+                                <div class="h-4 bg-white/10 rounded w-8"></div>
+                            </div>
+                            <div class="h-3 bg-white/10 rounded w-full mb-1"></div>
+                            <div class="h-3 bg-white/10 rounded w-5/6 mb-4 flex-grow"></div>
+                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="h-3 bg-white/10 rounded w-16"></div>
+                                    <div class="h-5 bg-white/10 rounded w-12"></div>
+                                </div>
+                                <div class="h-8 bg-white/10 rounded-xl w-16"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group menu-card-premium bg-[#121212] border border-white/5 rounded-3xl overflow-hidden flex flex-col relative animate-pulse hidden xl:flex">
+                        <div class="relative w-full h-48 bg-white/5"></div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div class="h-5 bg-white/10 rounded w-2/3"></div>
+                                <div class="h-4 bg-white/10 rounded w-8"></div>
+                            </div>
+                            <div class="h-3 bg-white/10 rounded w-full mb-1"></div>
+                            <div class="h-3 bg-white/10 rounded w-5/6 mb-4 flex-grow"></div>
+                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="h-3 bg-white/10 rounded w-16"></div>
+                                    <div class="h-5 bg-white/10 rounded w-12"></div>
+                                </div>
+                                <div class="h-8 bg-white/10 rounded-xl w-16"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group menu-card-premium bg-[#121212] border border-white/5 rounded-3xl overflow-hidden flex flex-col relative animate-pulse hidden xl:flex">
+                        <div class="relative w-full h-48 bg-white/5"></div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div class="h-5 bg-white/10 rounded w-2/3"></div>
+                                <div class="h-4 bg-white/10 rounded w-8"></div>
+                            </div>
+                            <div class="h-3 bg-white/10 rounded w-full mb-1"></div>
+                            <div class="h-3 bg-white/10 rounded w-5/6 mb-4 flex-grow"></div>
+                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="h-3 bg-white/10 rounded w-16"></div>
+                                    <div class="h-5 bg-white/10 rounded w-12"></div>
+                                </div>
+                                <div class="h-8 bg-white/10 rounded-xl w-16"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group menu-card-premium bg-[#121212] border border-white/5 rounded-3xl overflow-hidden flex flex-col relative animate-pulse hidden xl:flex">
+                        <div class="relative w-full h-48 bg-white/5"></div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div class="h-5 bg-white/10 rounded w-2/3"></div>
+                                <div class="h-4 bg-white/10 rounded w-8"></div>
+                            </div>
+                            <div class="h-3 bg-white/10 rounded w-full mb-1"></div>
+                            <div class="h-3 bg-white/10 rounded w-5/6 mb-4 flex-grow"></div>
+                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="h-3 bg-white/10 rounded w-16"></div>
+                                    <div class="h-5 bg-white/10 rounded w-12"></div>
+                                </div>
+                                <div class="h-8 bg-white/10 rounded-xl w-16"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1009,13 +1183,27 @@
                 </div>
                 <div>
                     <label
-                        class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5">Delivery
+                        class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5">Pinpoint
+                        Your Location</label>
+                    <input type="text" id="profile-map-search-input" placeholder="Search for area, street name..." class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 mb-2 text-white focus:outline-none focus:border-brand-gold text-sm">
+                    <div class="relative w-full h-40 rounded-xl overflow-hidden border border-white/10 mb-2 mt-2">
+                        <div id="profile-map" class="w-full h-full"></div>
+                        <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                            <i data-lucide="map-pin" class="w-8 h-8 text-brand-red animate-bounce fill-brand-red" style="padding-bottom: 16px;"></i>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="profile-lat-input">
+                    <input type="hidden" id="profile-lng-input">
+
+                    <label
+                        class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mt-3 mb-1.5">Delivery
                         Address</label>
-                    <textarea id="profile-address" required rows="3"
+                    <textarea id="profile-address" required rows="2"
                         placeholder="Flat/House No, Building, Area, Street..."
                         class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-brand-gold text-sm leading-relaxed"></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4 hidden">
                     <div>
                         <label
                             class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5">City</label>
@@ -1166,12 +1354,12 @@
     </script>
 
     <!-- Scripts -->
-    <script type="module" src="js/toast.js?v=2"></script>
-    <script type="module" src="js/policies.js?v=2"></script>
-    <script type="module" src="js/firebase-config.js?v=2"></script>
-    <script type="module" src="js/notifications.js?v=2"></script>
-    <script type="module" src="js/update-checker.js?v=2"></script>
-    <script type="module" src="js/app.js?v=7"></script>
+    <script type="module" src="js/toast.js?v=5"></script>
+    <script type="module" src="js/policies.js?v=5"></script>
+    <script type="module" src="js/firebase-config.js?v=5"></script>
+    <script type="module" src="js/notifications.js?v=5"></script>
+    <script type="module" src="js/update-checker.js?v=5"></script>
+    <script type="module" src="js/app.js?v=5"></script>
 </body>
 
 </html>

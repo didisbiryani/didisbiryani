@@ -70,16 +70,31 @@ module.exports = async (req, res) => {
     try {
         if (tokens && tokens.length > 0) {
             // Multicast logic
-            const message = {
-                notification: {
-                    title: title || "Update from Didi's Biryani",
-                    body: body || 'You have a new notification.'
-                },
-                data: data || {},
-                tokens: tokens
-            };
-            const response = await admin.messaging().sendEachForMulticast(message);
-            return res.status(200).json({ success: true, ...response });
+            const chunkSize = 500;
+            let successCount = 0;
+            let failureCount = 0;
+            let allResponses = [];
+
+            for (let i = 0; i < tokens.length; i += chunkSize) {
+                const chunk = tokens.slice(i, i + chunkSize);
+                const message = {
+                    notification: {
+                        title: title || "Update from Didi's Biryani",
+                        body: body || 'You have a new notification.'
+                    },
+                    data: data || {},
+                    tokens: chunk
+                };
+                try {
+                    const response = await admin.messaging().sendEachForMulticast(message);
+                    successCount += response.successCount;
+                    failureCount += response.failureCount;
+                    allResponses.push(response);
+                } catch (e) {
+                    console.error("FCM Chunk Error:", e);
+                }
+            }
+            return res.status(200).json({ success: true, successCount, failureCount, responses: allResponses });
         } else {
             // Single cast logic
             const message = {

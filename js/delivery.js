@@ -138,7 +138,42 @@ logoutBtn.addEventListener('click', async () => {
     }
     dashboardScreen.classList.add('hidden');
     loginScreen.classList.remove('hidden');
+    stopLocationTracking();
 });
+
+let locationWatchId = null;
+
+function startLocationTracking() {
+    if (locationWatchId) return;
+    if (navigator.geolocation) {
+        locationWatchId = navigator.geolocation.watchPosition(
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const heading = position.coords.heading;
+                
+                if (loggedInDriver && loggedInDriver.id) {
+                    try {
+                        await updateDoc(doc(db, "deliveryBoys", loggedInDriver.id), {
+                            liveLocation: { lat, lng, heading, timestamp: new Date().toISOString() }
+                        });
+                    } catch (e) {
+                        console.error("Error updating live location", e);
+                    }
+                }
+            },
+            (error) => console.error("Location tracking error:", error),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
+    }
+}
+
+function stopLocationTracking() {
+    if (locationWatchId && navigator.geolocation) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+    }
+}
 
 // Show Dashboard
 function showDashboard() {
@@ -184,6 +219,12 @@ function updateStatusUI() {
         btnArrived.classList.add('text-green-500');
         btnDelivery.classList.remove('bg-blue-500', 'text-white');
         btnDelivery.classList.add('text-blue-500');
+    }
+    
+    if (loggedInDriver.status !== 'Offline') {
+        startLocationTracking();
+    } else {
+        stopLocationTracking();
     }
 }
 
@@ -239,8 +280,100 @@ window.setDriverStatus = async (status) => {
             localStorage.removeItem('didi_delivery_driver');
             window.location.reload();
         } else {
-            alert("Could not update status. Error: " + e.message);
+            alert("Failed to update status. Please try again.");
         }
+    }
+};
+
+// --- Live Route Map Logic ---
+let routeMap = null;
+let directionsService = null;
+let directionsRenderer = null;
+let deliveryMarker = null;
+let liveLocationWatchId = null;
+
+window.openDeliveryMap = (destLat, destLng) => {
+    const modal = document.getElementById('delivery-map-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    if (!window.google) return;
+
+    if (!routeMap) {
+        routeMap = new google.maps.Map(document.getElementById('delivery-route-map'), {
+            zoom: 14,
+            disableDefaultUI: true,
+            styles: [
+                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+            ]
+        });
+        
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: routeMap,
+            suppressMarkers: false,
+            polylineOptions: {
+                strokeColor: '#D4A017',
+                strokeWeight: 4
+            }
+        });
+        
+        deliveryMarker = new google.maps.Marker({
+            map: routeMap,
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+            },
+            title: "You are here"
+        });
+    }
+
+    // Default origin is the restaurant
+    let originLatLng = { lat: currentStoreSettings.location ? currentStoreSettings.location.lat : 24.8333, lng: currentStoreSettings.location ? currentStoreSettings.location.lng : 92.7789 };
+    const destinationLatLng = { lat: destLat, lng: destLng };
+
+    // Request directions
+    const calcRoute = (start, end) => {
+        directionsService.route({
+            origin: start,
+            destination: end,
+            travelMode: 'DRIVING'
+        }, (response, status) => {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(response);
+                const leg = response.routes[0].legs[0];
+                document.getElementById('delivery-map-eta').innerText = leg.duration.text;
+                document.getElementById('delivery-map-dist').innerText = leg.distance.text;
+            }
+        });
+    };
+
+    // Watch for live position to update route origin
+    if (navigator.geolocation) {
+        liveLocationWatchId = navigator.geolocation.watchPosition((pos) => {
+            originLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            deliveryMarker.setPosition(originLatLng);
+            calcRoute(originLatLng, destinationLatLng);
+        }, (err) => {
+            console.error("Error watching position", err);
+            calcRoute(originLatLng, destinationLatLng);
+        }, { enableHighAccuracy: true });
+    } else {
+        calcRoute(originLatLng, destinationLatLng);
+    }
+};
+
+window.closeDeliveryMap = () => {
+    const modal = document.getElementById('delivery-map-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    
+    if (liveLocationWatchId && navigator.geolocation) {
+        navigator.geolocation.clearWatch(liveLocationWatchId);
+        liveLocationWatchId = null;
     }
 };
 
@@ -351,8 +484,11 @@ function renderOrders(orders) {
         const timeStr = safeFormatDate(o.timestamp, 'time');
 
         // Maps Links
-        const pickupUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentStoreSettings.address)}`;
-        const dropoffUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.address)}`;
+        const pickupUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentStoreSettings.address)}`;
+        let dropoffUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.address)}`;
+        if (o.location && o.location.lat && o.location.lng) {
+            dropoffUrl = `https://www.google.com/maps/dir/?api=1&destination=${o.location.lat},${o.location.lng}`;
+        }
         const phoneUrl = `tel:${o.phone}`;
 
         let tipBadge = '';
@@ -464,8 +600,13 @@ function renderOrders(orders) {
                             
                             <div class="flex gap-4">
                                 <a href="${dropoffUrl}" target="_blank" class="text-[10px] text-brand-gold font-bold inline-flex items-center gap-1 hover:underline">
-                                    <i data-lucide="navigation" class="w-3 h-3"></i> Navigate to Customer
+                                    <i data-lucide="external-link" class="w-3 h-3"></i> Open Maps App
                                 </a>
+                                ${(o.location && o.location.lat && o.location.lng) ? `
+                                <button onclick="openDeliveryMap(${o.location.lat}, ${o.location.lng})" class="text-[10px] text-brand-gold font-bold inline-flex items-center gap-1 hover:underline">
+                                    <i data-lucide="map" class="w-3 h-3"></i> View Live Route
+                                </button>
+                                ` : ''}
                                 <a href="${phoneUrl}" class="text-[10px] text-brand-gold font-bold inline-flex items-center gap-1 hover:underline">
                                     <i data-lucide="phone" class="w-3 h-3"></i> Call Customer
                                 </a>

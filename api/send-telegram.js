@@ -64,7 +64,11 @@ export default async function handler(req, res) {
             orderType,
             isManual,
             deliveryCharge,
-            taxAmount
+            taxAmount,
+            discount,
+            walletApplied,
+            amountDue,
+            donationAmount
         } = req.body;
 
         const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8878378532:AAFKGo_ZM2oEnMYTR9ogiZSmkpB9gg0kLA0';
@@ -80,10 +84,13 @@ export default async function handler(req, res) {
                 const itemTotal = (item.price * item.quantity);
                 let line = `   🍽 ${item.name}`;
                 if (item.variantLabel) line += ` (${item.variantLabel})`;
+                // Addon details
+                if (item.addonDetails && item.addonDetails.length > 0) {
+                    line += ` (inc. addons)`;
+                }
                 line += ` x${item.quantity} — ₹${itemTotal}`;
                 itemsText += line + '\n';
 
-                // Addon details
                 if (item.addonDetails && item.addonDetails.length > 0) {
                     item.addonDetails.forEach(ad => {
                         itemsText += `      ➕ ${ad.name} — ₹${ad.price}\n`;
@@ -116,8 +123,12 @@ export default async function handler(req, res) {
             `🛒 *Items:*\n${escapeMarkdown(itemsText)}\n` +
             (deliveryCharge ? `🚛 Delivery: ₹${escapeMarkdown(deliveryCharge)}\n` : '') +
             (taxAmount ? `📦 Tax/Packing: ₹${escapeMarkdown(taxAmount)}\n` : '') +
+            (discount ? `🎫 Discount: \\-₹${escapeMarkdown(discount)}\n` : '') +
+            (donationAmount ? `💝 Tip: ₹${escapeMarkdown(donationAmount)}\n` : '') +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `💰 *Total: ₹${escapeMarkdown(total || 0)}*\n` +
+            (walletApplied ? `💳 Wallet Used: \\-₹${escapeMarkdown(walletApplied)}\n` +
+                             `🎯 *Amount Due: ₹${escapeMarkdown(amountDue || 0)}*\n` : '') +
             `${payIcon} Payment: ${escapeMarkdown(paymentMethod || 'COD')}\n` +
             `${escapeMarkdown(typeEmoji)}\n` +
             `⏰ ${escapeMarkdown(dateStr)}`;
@@ -148,8 +159,12 @@ export default async function handler(req, res) {
                 `\n🛒 Items:\n${itemsText}\n` +
                 (deliveryCharge ? `🚛 Delivery: ₹${deliveryCharge}\n` : '') +
                 (taxAmount ? `📦 Tax/Packing: ₹${taxAmount}\n` : '') +
+                (discount ? `🎫 Discount: -₹${discount}\n` : '') +
+                (donationAmount ? `💝 Tip: ₹${donationAmount}\n` : '') +
                 `━━━━━━━━━━━━━━━━━━━━\n` +
                 `💰 Total: ₹${total || 0}\n` +
+                (walletApplied ? `💳 Wallet Used: -₹${walletApplied}\n` +
+                                 `🎯 Amount Due: ₹${amountDue || 0}\n` : '') +
                 `${payIcon} Payment: ${paymentMethod || 'COD'}\n` +
                 `${typeEmoji}\n` +
                 `⏰ ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`;

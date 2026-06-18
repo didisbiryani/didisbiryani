@@ -91,9 +91,24 @@ onAuthStateChanged(auth, (user) => {
         return;
     }
 
-    document.getElementById('user-name').innerText = user.displayName || 'Foodie';
-    document.getElementById('user-email').innerText = user.email;
-    if(user.photoURL) document.getElementById('user-avatar').src = user.photoURL;
+    const nameEl = document.getElementById('user-name');
+    const emailEl = document.getElementById('user-email');
+    const avatarEl = document.getElementById('user-avatar');
+    
+    nameEl.innerText = user.displayName || 'Foodie';
+    emailEl.innerText = user.email;
+    if(user.photoURL) avatarEl.src = user.photoURL;
+
+    // Remove skeletons
+    const nameSkel = document.getElementById('user-name-skeleton');
+    if (nameSkel) nameSkel.remove();
+    const emailSkel = document.getElementById('user-email-skeleton');
+    if (emailSkel) emailSkel.remove();
+    
+    nameEl.classList.remove('hidden');
+    emailEl.classList.remove('hidden');
+    avatarEl.classList.remove('opacity-0');
+    if (avatarEl.parentElement) avatarEl.parentElement.classList.remove('animate-pulse');
 
     // Load user orders
     loadUserOrders(user.uid);
@@ -488,6 +503,18 @@ function createOrderCard(order) {
                 }
                 return reviewHtml;
             })()}
+            
+            <!-- Action Buttons -->
+            <div class="mt-4 flex flex-wrap gap-2 justify-end">
+                ${['Delivered', 'Collected', 'Rejected'].includes(order.status) ? '' : `
+                    <a href="tracking.html?orderId=${order.id}" class="px-4 py-2 bg-white/5 text-white border border-white/10 rounded-xl text-xs font-bold hover:bg-white/10 transition-all flex items-center gap-2">
+                        <i data-lucide="map" class="w-3.5 h-3.5"></i> Track Order
+                    </a>
+                `}
+                <button onclick="reorder('${order.id}')" class="px-4 py-2 bg-brand-gold text-black rounded-xl text-xs font-bold hover:bg-white transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(212,160,23,0.3)]">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reorder
+                </button>
+            </div>
         </div>
     `;
 }
@@ -505,6 +532,20 @@ window.promptEditAddress = async (orderId, currentAddress) => {
             showToast("Failed to update address. Please try again.", "error");
         }
     }
+};
+
+window.reorder = (orderId) => {
+    const order = myCurrentOrders.find(o => o.id === orderId);
+    if (!order || !order.items) return;
+    
+    // Save to localStorage mimicking cart structure
+    localStorage.setItem('didisCart', JSON.stringify(order.items));
+    showToast("Items added to cart! Redirecting...", "success");
+    
+    // Redirect to home page where cart is automatically loaded
+    setTimeout(() => {
+        window.location.href = "index.html#checkout";
+    }, 800);
 };
 
 // --- Review Logic ---

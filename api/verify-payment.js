@@ -124,7 +124,8 @@ export default async function handler(req, res) {
                     const updatePayload = {
                         paymentMethod: 'Online (Razorpay)',
                         paymentStatus: 'Paid',
-                        razorpayPaymentId: paymentId
+                        razorpayPaymentId: paymentId,
+                        amountDue: 0
                     };
 
                     // Auto-accept manual orders that were pending payment

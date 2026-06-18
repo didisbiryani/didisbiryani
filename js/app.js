@@ -1,4 +1,4 @@
-import { db, collection, getDocs, getDoc, addDoc, auth, provider, signInWithGoogle, getRedirectResult, onAuthStateChanged, signOut, onSnapshot, setDoc, doc, query, where, signInWithCredential } from './firebase-config.js';
+import { db, collection, getDocs, getDoc, addDoc, auth, provider, signInWithGoogle, getRedirectResult, onAuthStateChanged, signOut, onSnapshot, setDoc, doc, query, where, signInWithCredential, arrayUnion } from './firebase-config.js';
 import { GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const APP_VERSION = '1.0.0';
@@ -23,6 +23,8 @@ let currentStoreSettings = { bannerInterval: 5 };
 let vegOnlyFilter = false;
 let ratingFilter = false;
 let under150Filter = false;
+let favoritesFilter = false;
+let userFavorites = [];
 let searchQuery = "";
 
 let activeCoupons = [];
@@ -94,6 +96,11 @@ function updateAuthUI(user) {
             customerChatUnsubscribe();
             customerChatUnsubscribe = null;
         }
+        
+        const pillFavorites = document.getElementById('filter-pill-favorites');
+        if (pillFavorites) pillFavorites.classList.add('hidden');
+        userFavorites = [];
+        favoritesFilter = false;
     }
 }
 
@@ -114,7 +121,8 @@ onAuthStateChanged(auth, async (user) => {
         const pendingToken = localStorage.getItem('pendingFcmToken');
         if (pendingToken) {
             setDoc(doc(db, "users", user.uid), {
-                fcmToken: pendingToken
+                fcmToken: pendingToken,
+                fcmTokens: arrayUnion(pendingToken)
             }, { merge: true }).then(() => {
                 localStorage.removeItem('pendingFcmToken');
                 console.log("Pending FCM token saved to user profile.");
@@ -198,15 +206,23 @@ onAuthStateChanged(auth, async (user) => {
                             address: addressVal
                         }, { merge: true });
                     }
+                    if (userData.favorites) {
+                        userFavorites = userData.favorites;
+                    }
                 } else {
                     await setDoc(doc(db, "users", user.uid), {
                         name: user.displayName || 'Customer',
                         email: user.email || '',
                         photo: user.photoURL || '',
                         phone: phoneVal,
-                        address: addressVal
+                        address: addressVal,
+                        favorites: []
                     }, { merge: true });
                 }
+                
+                const pillFavorites = document.getElementById('filter-pill-favorites');
+                if (pillFavorites) pillFavorites.classList.remove('hidden');
+                
             } else {
                 // Profile is truly incomplete on both device and DB
                 openCompleteProfileModal();
@@ -370,7 +386,8 @@ window.handleNativeFCMToken = async (token) => {
     try {
         if (currentUser) {
             await setDoc(doc(db, "users", currentUser.uid), {
-                fcmToken: token
+                fcmToken: token,
+                fcmTokens: arrayUnion(token)
             }, { merge: true });
             console.log("Native FCM Token saved to user profile.");
         } else {
@@ -636,11 +653,26 @@ function getDealTextForItem(item) {
 async function loadMenu() {
     const menuGrid = document.getElementById('menu-grid');
     if (!menuGrid) return;
+    
+    // Add Skeleton Loading State
+    menuGrid.innerHTML = Array(6).fill(0).map(() => `
+        <div class="menu-card-premium bg-[#141414] border border-white/5 rounded-2xl overflow-hidden flex flex-col h-full animate-pulse">
+            <div class="relative h-40 w-full bg-white/10"></div>
+            <div class="p-4 flex flex-col flex-grow">
+                <div class="h-5 bg-white/10 rounded w-3/4 mb-3"></div>
+                <div class="h-3 bg-white/5 rounded w-1/2 mb-4"></div>
+                <div class="mt-auto pt-2 border-t border-white/5 flex justify-between items-center">
+                    <div class="h-6 bg-white/10 rounded w-16"></div>
+                    <div class="h-8 bg-white/10 rounded w-20"></div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
     try {
         await loadActiveCoupons();
         
         onSnapshot(collection(db, "menu"), (querySnapshot) => {
-            menuGrid.innerHTML = ''; 
             allMenuItems = []; // Clear array to prevent duplicates
             
             if (querySnapshot.empty) {
@@ -926,7 +958,12 @@ function applyFiltersAndSort() {
     
     // Price filter (Under 150)
     if (under150Filter) {
-        itemsToRender = itemsToRender.filter(i => Number(i.price) < 150);
+        itemsToRender = itemsToRender.filter(item => Number(item.price) < 150);
+    }
+    
+    // Favorites filter
+    if (favoritesFilter) {
+        itemsToRender = itemsToRender.filter(item => userFavorites.includes(item.id));
     }
     
     // Search filter
@@ -1386,8 +1423,10 @@ function renderRecommendedCarousel() {
         const originalPriceHtml = item.originalPrice ? `<span class="text-xs text-brand-white/40 line-through mr-1">₹${item.originalPrice}</span>` : '';
         const qtyLabelHtml = item.quantityLabel ? `<div class="text-[9px] text-brand-gold font-bold uppercase tracking-wider">${item.quantityLabel}</div>` : '';
 
+        const isFav = userFavorites.includes(item.id);
+
         const card = document.createElement('div');
-        card.className = 'snap-start flex-shrink-0 w-64 md:w-72 menu-card-premium bg-[#141414] border border-white/10 hover:border-brand-gold/50 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col group';
+        card.className = 'snap-start flex-shrink-0 w-64 md:w-72 menu-card-premium bg-[#141414] border border-white/10 hover:border-brand-gold/50 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col group relative';
         card.innerHTML = `
             <div class="relative h-40 w-full overflow-hidden p-2 bg-black/20 ${item.status === 'Out of Stock' ? '' : 'cursor-pointer'}" ${item.status === 'Out of Stock' ? '' : `onclick="openCustomizationModal('${item.id}')"`}>
                 <img src="${item.image || 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?q=80&w=600'}" class="object-cover w-full h-full rounded-xl ${item.status === 'Out of Stock' ? 'opacity-50' : 'group-hover:scale-105'} transition-transform duration-700">
@@ -1401,6 +1440,12 @@ function renderRecommendedCarousel() {
                     ${typeBadge}
                 </div>
             </div>
+            
+            ${currentUser ? `
+            <button onclick="toggleFavorite('${item.id}', event)" class="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 transition-colors ${isFav ? 'text-brand-red border-brand-red/50' : 'text-white/50 hover:text-brand-red hover:border-brand-red/50'}">
+                <i data-lucide="heart" class="w-4 h-4 ${isFav ? 'fill-current text-brand-red' : ''}"></i>
+            </button>
+            ` : ''}
             
             <div class="p-4 flex flex-col flex-grow">
                 <div class="flex justify-between items-start mb-1 ${item.status === 'Out of Stock' ? '' : 'cursor-pointer'}" ${item.status === 'Out of Stock' ? '' : `onclick="openCustomizationModal('${item.id}')"`}>
@@ -1607,11 +1652,13 @@ window.toggleFilter = (type) => {
     const pillRating = document.getElementById('filter-pill-rating');
     const pillUnder150 = document.getElementById('filter-pill-under150');
     const pillVeg = document.getElementById('filter-pill-veg');
+    const pillFavorites = document.getElementById('filter-pill-favorites');
 
     if (type === 'all') {
         vegOnlyFilter = false;
         ratingFilter = false;
         under150Filter = false;
+        favoritesFilter = false;
         currentCategoryFilter = 'All';
         
         const dot = document.getElementById('veg-toggle-dot');
@@ -1629,6 +1676,7 @@ window.toggleFilter = (type) => {
         setActivePillStyle(pillRating, false);
         setActivePillStyle(pillUnder150, false);
         setActivePillStyle(pillVeg, false);
+        setActivePillStyle(pillFavorites, false);
         
         const menuTitle = document.getElementById('menu-section-title');
         if (menuTitle) menuTitle.innerText = 'Menu to explore';
@@ -1639,6 +1687,10 @@ window.toggleFilter = (type) => {
     } else if (type === 'under150') {
         under150Filter = !under150Filter;
         setActivePillStyle(pillUnder150, under150Filter);
+        updateAllPillState();
+    } else if (type === 'favorites') {
+        favoritesFilter = !favoritesFilter;
+        setActivePillStyle(pillFavorites, favoritesFilter);
         updateAllPillState();
     } else if (type === 'veg') {
         window.toggleVegOnly();
@@ -1662,9 +1714,39 @@ function setActivePillStyle(pill, isActive) {
 
 function updateAllPillState() {
     const pillAll = document.getElementById('filter-pill-all');
-    const isAnyActive = ratingFilter || under150Filter || vegOnlyFilter || currentCategoryFilter !== 'All';
+    const isAnyActive = ratingFilter || under150Filter || vegOnlyFilter || favoritesFilter || currentCategoryFilter !== 'All';
     setActivePillStyle(pillAll, !isAnyActive);
 }
+
+window.toggleFavorite = async (itemId, event) => {
+    event.stopPropagation();
+    if (!currentUser) return;
+    
+    const index = userFavorites.indexOf(itemId);
+    let newFavorites = [...userFavorites];
+    
+    if (index === -1) {
+        newFavorites.push(itemId);
+        showToast("Added to favorites!", "success");
+    } else {
+        newFavorites.splice(index, 1);
+        showToast("Removed from favorites.", "info");
+    }
+    
+    userFavorites = newFavorites;
+    
+    // Optimistic UI update
+    renderMenuItems(allMenuItems);
+    if (favoritesFilter) applyFiltersAndSort();
+    
+    try {
+        await setDoc(doc(db, "users", currentUser.uid), {
+            favorites: newFavorites
+        }, { merge: true });
+    } catch (e) {
+        console.error("Error saving favorite:", e);
+    }
+};
 
 window.startVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2364,12 +2446,87 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+let profileMap = null;
+
+window.initProfileMap = function() {
+    if (profileMap) return;
+    const defaultLocation = { lat: 24.8333, lng: 92.7789 }; // Silchar
+    
+    profileMap = new google.maps.Map(document.getElementById('profile-map'), {
+        center: defaultLocation,
+        zoom: 15,
+        disableDefaultUI: true,
+        styles: [
+            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+        ]
+    });
+
+    profileMap.addListener('dragend', () => {
+        const center = profileMap.getCenter();
+        document.getElementById('profile-lat-input').value = center.lat();
+        document.getElementById('profile-lng-input').value = center.lng();
+        
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: center }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                document.getElementById('profile-address').value = results[0].formatted_address;
+            }
+        });
+    });
+
+    const input = document.getElementById('profile-map-search-input');
+    const searchBox = new google.maps.places.SearchBox(input);
+
+    profileMap.addListener('bounds_changed', () => {
+        searchBox.setBounds(profileMap.getBounds());
+    });
+
+    searchBox.addListener('places_changed', () => {
+        const places = searchBox.getPlaces();
+        if (places.length == 0) return;
+        
+        const bounds = new google.maps.LatLngBounds();
+        places.forEach(place => {
+            if (!place.geometry || !place.geometry.location) return;
+            if (place.geometry.viewport) {
+                bounds.union(place.geometry.viewport);
+            } else {
+                bounds.extend(place.geometry.location);
+            }
+        });
+        profileMap.fitBounds(bounds);
+        setTimeout(() => google.maps.event.trigger(profileMap, 'dragend'), 500);
+    });
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
+            profileMap.setCenter(pos);
+            setTimeout(() => google.maps.event.trigger(profileMap, 'dragend'), 500);
+        });
+    }
+}
+
 // Complete Profile Modal functions
 function openCompleteProfileModal() {
     const modal = document.getElementById('complete-profile-modal');
     if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
+        
+        if (window.google) {
+            window.initProfileMap();
+            setTimeout(() => {
+                if (profileMap) {
+                    google.maps.event.trigger(profileMap, 'resize');
+                    profileMap.setCenter(profileMap.getCenter());
+                }
+            }, 100);
+        }
         
         // Try pre-filling fields from currentUser/localStorage
         const nameInput = document.getElementById('profile-name');
@@ -2391,10 +2548,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = document.getElementById('profile-name').value.trim();
         const phone = document.getElementById('profile-phone').value.trim();
         const addr = document.getElementById('profile-address').value.trim();
-        const city = document.getElementById('profile-city').value.trim();
-        const zip = document.getElementById('profile-zip').value.trim();
+        const lat = document.getElementById('profile-lat-input').value;
+        const lng = document.getElementById('profile-lng-input').value;
         
-        if (!name || !phone || !addr || !city || !zip) {
+        if (!name || !phone || !addr) {
             if (typeof window.showToast === 'function') {
                 window.showToast("All fields are required.", "error");
             } else {
@@ -2407,28 +2564,26 @@ document.addEventListener('DOMContentLoaded', () => {
             else alert("Phone number must be exactly 10 digits.");
             return;
         }
-        if (!/^[0-9]{6}$/.test(zip)) {
-            if (typeof window.showToast === 'function') window.showToast("Zip code must be exactly 6 digits.", "error");
-            else alert("Zip code must be exactly 6 digits.");
-            return;
-        }
 
-        const combinedAddress = `${addr}, ${city}, Assam - ${zip}`;
+        const combinedAddress = addr;
         
         try {
             if (currentUser) {
                 await setDoc(doc(db, "users", currentUser.uid), {
-                    name: name,
+                    displayName: name,
                     phone: phone,
                     address: combinedAddress,
-                    addressLine: addr,
-                    city: city,
-                    zip: zip,
-                    customerSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                    lat: lat ? Number(lat) : null,
+                    lng: lng ? Number(lng) : null,
+                    profileCompleted: true
                 }, { merge: true });
                 
                 localStorage.setItem('didisLastPhone', phone);
                 localStorage.setItem('didisLastAddress', combinedAddress);
+                if (lat && lng) {
+                    localStorage.setItem('didisLat', lat);
+                    localStorage.setItem('didisLng', lng);
+                }
                 
                 const modal = document.getElementById('complete-profile-modal');
                 if (modal) {

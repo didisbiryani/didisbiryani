@@ -21,6 +21,9 @@
     
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDac0HRwWL2pvJZCO3TOE6rwwl_FuYpfbc&libraries=places"></script>
 </head>
 
 <body class="text-brand-white min-h-screen pb-28 overflow-x-hidden">
@@ -85,7 +88,13 @@
             </h2>
 
             <div id="checkout-cart-items" class="divide-y divide-white/5 space-y-4">
-                <!-- Injected dynamically -->
+                <div class="flex gap-4 animate-pulse pt-2">
+                    <div class="w-12 h-12 bg-white/10 rounded-lg"></div>
+                    <div class="flex-1 space-y-2 py-1">
+                        <div class="h-3 bg-white/10 rounded w-1/2"></div>
+                        <div class="h-2 bg-white/10 rounded w-1/4"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="pt-4 border-t border-white/5 flex items-center justify-between">
@@ -103,7 +112,9 @@
             </h2>
 
             <div id="cross-sell-carousel" class="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 hide-scrollbar">
-                <!-- Drinks and sides loaded dynamically -->
+                <div class="min-w-[120px] h-[140px] bg-white/5 border border-white/10 rounded-2xl animate-pulse"></div>
+                <div class="min-w-[120px] h-[140px] bg-white/5 border border-white/10 rounded-2xl animate-pulse"></div>
+                <div class="min-w-[120px] h-[140px] bg-white/5 border border-white/10 rounded-2xl animate-pulse"></div>
             </div>
         </section>
 
@@ -189,27 +200,27 @@
                 <div class="flex gap-3 relative">
                     <i data-lucide="map-pin" class="w-5 h-5 text-brand-gold flex-shrink-0 mt-0.5"></i>
                     <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center mb-2">
                             <h4 class="text-xs font-black text-brand-white uppercase tracking-wider">Delivery Address</h4>
-                            <button onclick="toggleAddressEdit()"
-                                class="text-[10px] text-brand-gold font-bold hover:underline uppercase">Edit</button>
                         </div>
-                        <p id="display-address" class="text-xs text-brand-white/60 mt-1 leading-relaxed text-wrap">Loading
-                            Address...</p>
 
-                        <!-- Editable address textarea -->
-                        <div id="address-edit-block" class="hidden mt-2 space-y-2">
+                        <!-- Editable address textarea & Map (Always open) -->
+                        <div id="address-edit-block" class="mt-2 space-y-2">
+                            <input type="text" id="map-search-input" placeholder="Search for area, street name..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-brand-white focus:outline-none focus:border-brand-gold">
+                            <div class="relative w-full h-40 rounded-xl overflow-hidden border border-white/10 mb-2 mt-2">
+                                <div id="checkout-map" class="w-full h-full"></div>
+                                <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                                    <i data-lucide="map-pin" class="w-8 h-8 text-brand-red animate-bounce fill-brand-red" style="padding-bottom: 16px;"></i>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-brand-gold font-bold text-center">Drag map to adjust exact pin location</p>
+                            
                             <textarea id="address-input" rows="2"
                                 class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-brand-white focus:outline-none focus:border-brand-gold"
-                                placeholder="Flat No., Landmark, Area..."></textarea>
-                            <div class="flex gap-2">
-                                <input type="text" id="city-input" placeholder="City" value="Silchar"
-                                    class="w-1/3 bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] text-brand-white focus:outline-none focus:border-brand-gold">
-                                <input type="text" id="zip-input" placeholder="Zip" value="788001"
-                                    class="w-1/3 bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] text-brand-white focus:outline-none focus:border-brand-gold">
-                                <button onclick="saveAddressInline()"
-                                    class="flex-1 bg-brand-gold text-black font-black text-[10px] rounded-lg uppercase tracking-wider">Save</button>
-                            </div>
+                                placeholder="House No., Building Name, Landmark..."></textarea>
+                                
+                            <input type="hidden" id="lat-input">
+                            <input type="hidden" id="lng-input">
                         </div>
                     </div>
                 </div>
@@ -227,7 +238,8 @@
                             class="text-[10px] text-brand-gold font-bold hover:underline uppercase">Edit</button>
                     </div>
                     <p id="display-contact" class="text-xs text-brand-white/60 mt-1 font-semibold leading-relaxed">
-                        Loading details...</p>
+                        <span class="inline-block w-1/2 h-3 bg-white/10 rounded animate-pulse"></span>
+                    </p>
 
                     <!-- Editable contact details fields -->
                     <div id="contact-edit-block" class="hidden mt-2 space-y-2">

@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc, query, where, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc, query, where, increment, runTransaction, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCredential } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
@@ -36,4 +36,4 @@ const signInWithGoogle = async (auth, provider) => {
   }
 };
 
-export { db, auth, provider, signInWithPopup, signInWithGoogle, getRedirectResult, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCredential, collection, addDoc, getDocs, getDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc, query, where, increment, runTransaction, functions, httpsCallable, messaging, getToken, onMessage };
+export { db, auth, provider, signInWithPopup, signInWithGoogle, getRedirectResult, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCredential, collection, addDoc, getDocs, getDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc, query, where, increment, runTransaction, arrayUnion, functions, httpsCallable, messaging, getToken, onMessage };

@@ -1,4 +1,4 @@
-import { db, auth, collection, query, where, onSnapshot, onAuthStateChanged, messaging, getToken, doc, updateDoc } from './firebase-config.js';
+import { db, auth, collection, query, where, onSnapshot, onAuthStateChanged, messaging, getToken, doc, updateDoc, arrayUnion } from './firebase-config.js';
 
 let isInitialOrderLoad = true;
 let isInitialMessageLoad = true;
@@ -33,7 +33,8 @@ async function requestPushPermission(user) {
             if (currentToken) {
                 // Save token to user profile
                 await updateDoc(doc(db, "users", user.uid), {
-                    fcmToken: currentToken
+                    fcmToken: currentToken,
+                    fcmTokens: arrayUnion(currentToken)
                 });
                 console.log("FCM Token saved successfully.");
             }

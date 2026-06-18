@@ -158,11 +158,14 @@ export function printKOT(order) {
 
         itemsHtml += `
             <tr>
-                <td class="col-qty bold">${item.quantity} x</td>
+                <td class="col-qty bold" style="font-size: 16px;">${item.quantity} x</td>
                 <td class="col-item">
-                    ${vegIndicator}${item.name}${variantText}
+                    ${vegIndicator}<span style="font-size: 14px; font-weight: bold;">${item.name}${variantText}</span>
                     ${customHtml}
                 </td>
+            </tr>
+            <tr>
+                <td colspan="2"><div class="divider"></div></td>
             </tr>
         `;
     });

@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Didi's Delivery Partner</title>
+    <!-- Leaflet for Map (Or Google Maps) -->
+    <!-- We will use Google Maps as per the task requirements -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDac0HRwWL2pvJZCO3TOE6rwwl_FuYpfbc&libraries=places"></script>
+
+    <!-- Tailwind CSS (CDN for quick setup) -->
     <script type="module" src="js/tailwind-cdn.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -241,6 +246,24 @@
             <button id="upi-confirm-btn" class="w-full py-4 bg-green-500 text-white font-black rounded-xl hover:bg-white hover:text-green-500 transition-colors shadow-[0_0_15px_rgba(34,197,94,0.3)] flex items-center justify-center gap-2">
                 <i data-lucide="check-circle" class="w-5 h-5"></i> Confirm Payment Received
             </button>
+        </div>
+    </div>
+
+    <!-- Live Route Map Modal -->
+    <div id="delivery-map-modal" class="fixed inset-0 bg-black/90 z-[600] hidden flex-col backdrop-blur-sm">
+        <header class="flex justify-between items-center p-4 border-b border-white/10 bg-[#0a0a0add]">
+            <h2 class="text-sm font-black text-brand-white uppercase tracking-wider">Live Route</h2>
+            <button onclick="closeDeliveryMap()" class="text-brand-white/50 hover:text-white p-2">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </header>
+        <div class="flex-1 w-full h-full relative">
+            <div id="delivery-route-map" class="w-full h-full"></div>
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-[#111] border border-white/10 rounded-2xl px-6 py-4 flex flex-col items-center shadow-2xl">
+                <p class="text-xs text-brand-white/50 uppercase tracking-widest font-bold mb-1">ETA</p>
+                <h3 id="delivery-map-eta" class="text-2xl font-black text-brand-gold">-- mins</h3>
+                <p id="delivery-map-dist" class="text-xs text-brand-white mt-1">-- km</p>
+            </div>
         </div>
     </div>
 

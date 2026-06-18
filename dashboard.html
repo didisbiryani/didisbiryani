@@ -34,10 +34,15 @@
         
         <!-- User Profile Header -->
         <div class="bg-gradient-to-r from-brand-gold/20 to-transparent border border-brand-gold/30 rounded-3xl p-6 md:p-10 mb-10 flex items-center gap-6">
-            <img id="user-avatar" src="https://via.placeholder.com/100" class="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-brand-gold shadow-[0_0_20px_rgba(212, 160, 23,0.4)]">
-            <div>
-                <h1 id="user-name" class="text-2xl md:text-4xl font-black text-brand-white mb-1">Loading...</h1>
-                <p id="user-email" class="text-brand-white/60">Please wait</p>
+            <div class="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-brand-gold shadow-[0_0_20px_rgba(212, 160, 23,0.4)] relative overflow-hidden bg-black/50 flex-shrink-0 animate-pulse">
+                <img id="user-avatar" src="" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300">
+            </div>
+            <div class="space-y-2 w-full max-w-xs">
+                <div id="user-name-skeleton" class="w-48 h-8 md:h-10 bg-white/10 rounded animate-pulse"></div>
+                <h1 id="user-name" class="text-2xl md:text-4xl font-black text-brand-white mb-1 hidden"></h1>
+                
+                <div id="user-email-skeleton" class="w-32 h-4 bg-white/10 rounded animate-pulse mt-2"></div>
+                <p id="user-email" class="text-brand-white/60 hidden"></p>
             </div>
         </div>
 
@@ -126,9 +131,51 @@
                 <h2 class="text-2xl font-bold text-brand-white mb-6 flex items-center gap-2"><i data-lucide="package" class="text-brand-gold"></i> My Orders</h2>
                 
                 <div id="orders-container" class="space-y-6">
-                    <div class="text-center py-20 bg-white/5 border border-white/10 rounded-3xl">
-                        <i data-lucide="loader" class="w-10 h-10 mx-auto text-brand-gold animate-spin mb-4"></i>
-                        <p class="text-brand-white/50">Fetching your orders...</p>
+                    <!-- Skeleton Order Card 1 -->
+                    <div class="glass border border-white/10 rounded-3xl p-6 md:p-8 animate-pulse">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="space-y-2">
+                                <div class="w-32 h-4 bg-white/10 rounded"></div>
+                                <div class="w-24 h-3 bg-white/10 rounded mt-2"></div>
+                                <div class="w-16 h-3 bg-brand-gold/20 rounded mt-1"></div>
+                            </div>
+                            <div class="w-20 h-6 bg-white/10 rounded-full"></div>
+                        </div>
+                        <div class="bg-black/30 rounded-2xl p-5 mb-4 space-y-4">
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                                <div class="w-1/2 h-3 bg-white/10 rounded"></div>
+                                <div class="w-12 h-3 bg-white/10 rounded"></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                                <div class="w-1/3 h-3 bg-white/10 rounded"></div>
+                                <div class="w-12 h-3 bg-white/10 rounded"></div>
+                            </div>
+                            <div class="flex justify-between items-center pt-2">
+                                <div class="w-20 h-3 bg-white/10 rounded"></div>
+                                <div class="w-16 h-4 bg-brand-gold/20 rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Skeleton Order Card 2 -->
+                    <div class="glass border border-white/10 rounded-3xl p-6 md:p-8 animate-pulse hidden md:block opacity-50">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="space-y-2">
+                                <div class="w-32 h-4 bg-white/10 rounded"></div>
+                                <div class="w-24 h-3 bg-white/10 rounded mt-2"></div>
+                                <div class="w-16 h-3 bg-brand-gold/20 rounded mt-1"></div>
+                            </div>
+                            <div class="w-20 h-6 bg-white/10 rounded-full"></div>
+                        </div>
+                        <div class="bg-black/30 rounded-2xl p-5 mb-4 space-y-4">
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                                <div class="w-1/2 h-3 bg-white/10 rounded"></div>
+                                <div class="w-12 h-3 bg-white/10 rounded"></div>
+                            </div>
+                            <div class="flex justify-between items-center pt-2">
+                                <div class="w-20 h-3 bg-white/10 rounded"></div>
+                                <div class="w-16 h-4 bg-brand-gold/20 rounded"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

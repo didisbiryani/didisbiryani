@@ -162,7 +162,8 @@ function payViaRazorpay(forceQR = false) {
                     try {
                         const updatePayload = {
                             paymentMethod: 'Online (Razorpay)',
-                            paymentStatus: 'Paid'
+                            paymentStatus: 'Paid',
+                            amountDue: 0
                         };
                         if (currentOrder.isManual && currentOrder.status === 'Pending') {
                             updatePayload.status = 'Accepted';
