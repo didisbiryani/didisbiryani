@@ -12,7 +12,8 @@ export default defineConfig({
         dashboard: resolve(__dirname, 'dashboard.html'),
         delivery: resolve(__dirname, 'delivery.html'),
         kds: resolve(__dirname, 'kds.html'),
-        payment: resolve(__dirname, 'payment.html')
+        payment: resolve(__dirname, 'payment.html'),
+        tracking: resolve(__dirname, 'tracking.html')
       }
     }
   },
