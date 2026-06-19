@@ -438,6 +438,8 @@ window.initCheckoutMap = () => {
         center: defaultLocation,
         zoom: 15,
         disableDefaultUI: true,
+        gestureHandling: 'greedy',
+        fullscreenControl: true,
         styles: [
             { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
             { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },

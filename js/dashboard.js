@@ -546,6 +546,8 @@ window.openEditAddressModal = (orderId) => {
             zoom: 16,
             disableDefaultUI: true,
             zoomControl: true,
+            gestureHandling: 'greedy',
+            fullscreenControl: true,
             mapTypeId: 'roadmap',
             styles: [
                 { elementType: "geometry", stylers: [{ color: "#242f3e" }] },

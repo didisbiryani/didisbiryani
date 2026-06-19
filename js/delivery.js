@@ -303,6 +303,8 @@ window.openDeliveryMap = (destLat, destLng) => {
         routeMap = new google.maps.Map(document.getElementById('delivery-route-map'), {
             zoom: 14,
             disableDefaultUI: true,
+            gestureHandling: 'greedy',
+            fullscreenControl: true,
             styles: [
                 { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
                 { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
