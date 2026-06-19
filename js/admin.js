@@ -744,7 +744,8 @@ document.getElementById('add-menu-form').addEventListener('submit', async (e) =>
             showToast('Menu Item Updated!', 'success');
             cancelEdit();
         } else {
-            await addDoc(menuCol, data);
+            const docId = data.name.replace(/[^a-zA-Z0-9 -]/g, '').trim().replace(/\s+/g, '-').toLowerCase();
+            await setDoc(doc(db, "menu", docId || String(Date.now())), data);
             document.getElementById('add-menu-form').reset();
             document.getElementById('customization-builder').innerHTML = '';
             document.getElementById('variants-builder').innerHTML = '';
@@ -2231,7 +2232,8 @@ document.getElementById('add-delivery-boy-form').addEventListener('submit', asyn
         passcode: document.getElementById('driverPasscode').value.trim(),
         createdAt: new Date().toISOString()
     };
-    await addDoc(deliveryBoysCol, data);
+    const docId = data.name.replace(/[^a-zA-Z0-9 -]/g, '').trim().replace(/\s+/g, '-').toLowerCase();
+    await setDoc(doc(db, "deliveryBoys", docId || String(Date.now())), data);
     document.getElementById('add-delivery-boy-form').reset();
 });
 
@@ -2502,7 +2504,7 @@ document.getElementById('create-coupon-form')?.addEventListener('submit', async 
     const minOrder = Number(document.getElementById('couponMinOrder').value);
 
     try {
-        await addDoc(couponsCol, {
+        await setDoc(doc(db, "coupons", code), {
             code, type, value, minOrder,
             targetAudience: audience,
             targetType: targetType,
@@ -3597,7 +3599,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Banner updated successfully!", "success");
                     cancelBannerEdit();
                 } else {
-                    await addDoc(collection(db, "banners"), data);
+                    const docId = data.title.replace(/[^a-zA-Z0-9 -]/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'banner-' + String(Date.now());
+                    await setDoc(doc(db, "banners", docId), data);
                     showToast("Banner created successfully!", "success");
                     document.getElementById('create-banner-form').reset();
                     if (window.toggleBannerLinkTypeField) window.toggleBannerLinkTypeField();
@@ -4789,7 +4792,13 @@ window.submitManualOrder = async () => {
             isManual: true
         };
 
-        const docRef = await addDoc(collection(db, "orders"), orderData);
+        let docRef;
+        if (orderData.orderNumber) {
+            docRef = doc(db, "orders", String(orderData.orderNumber));
+            await setDoc(docRef, orderData);
+        } else {
+            docRef = await addDoc(collection(db, "orders"), orderData);
+        }
 
         // Send Telegram notification for manual orders too
         try {

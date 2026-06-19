@@ -1310,7 +1310,13 @@ window.submitOrderDirect = async () => {
             orderData.paymentId = 'WALLET-' + new Date().getTime();
 
             // 1. Create order doc
-            const docRef = await addDoc(collection(db, "orders"), orderData);
+            let docRef;
+            if (orderData.orderNumber) {
+                docRef = doc(db, "orders", String(orderData.orderNumber));
+                await setDoc(docRef, orderData);
+            } else {
+                docRef = await addDoc(collection(db, "orders"), orderData);
+            }
             sendTelegramNotification(orderData);
             const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
             fetch(notifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
@@ -1340,7 +1346,13 @@ window.submitOrderDirect = async () => {
     // SCENARIO 2: COD Order
     if (selectedPayment === 'cod') {
         try {
-            const docRef = await addDoc(collection(db, "orders"), orderData);
+            let docRef;
+            if (orderData.orderNumber) {
+                docRef = doc(db, "orders", String(orderData.orderNumber));
+                await setDoc(docRef, orderData);
+            } else {
+                docRef = await addDoc(collection(db, "orders"), orderData);
+            }
             sendTelegramNotification(orderData);
             const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
             fetch(notifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
@@ -1372,7 +1384,12 @@ window.submitOrderDirect = async () => {
         orderData.statusTimestamps = { 'Payment Pending': new Date().toISOString() };
         let docRef;
         try {
-            docRef = await addDoc(collection(db, "orders"), orderData);
+            if (orderData.orderNumber) {
+                docRef = doc(db, "orders", String(orderData.orderNumber));
+                await setDoc(docRef, orderData);
+            } else {
+                docRef = await addDoc(collection(db, "orders"), orderData);
+            }
         } catch (err) {
             console.error(err);
             showToast("Failed to initiate order.", "error");
