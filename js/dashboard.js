@@ -440,7 +440,7 @@ function createOrderCard(order) {
                     <div class="text-right">
                         <span class="text-brand-white/90 font-medium max-w-[220px] block" id="address-display-${order.id}">${order.address}</span>
                         ${(order.status === 'Pending' || order.status === 'Accepted' || order.status === 'Cooking') ? `
-                            <button onclick="promptEditAddress('${order.id}', '${(order.address || '').replace(/'/g, "\\'")}')" class="text-brand-gold hover:text-white underline mt-1 transition-colors text-[10px]">Edit Address</button>
+                            <button onclick="openEditAddressModal('${order.id}')" class="text-brand-gold hover:text-white underline mt-1 transition-colors text-[10px]">Edit Address & Location</button>
                         ` : ''}
                     </div>
                 </div>
@@ -519,20 +519,114 @@ function createOrderCard(order) {
     `;
 }
 
-window.promptEditAddress = async (orderId, currentAddress) => {
-    const newAddress = prompt("Enter your new delivery address:", currentAddress);
-    if (newAddress && newAddress.trim() !== "" && newAddress !== currentAddress) {
-        try {
-            await updateDoc(doc(db, "orders", orderId), {
-                address: newAddress.trim()
-            });
-            showToast("Delivery address updated successfully!", "success");
-        } catch (e) {
-            console.error("Error updating address:", e);
-            showToast("Failed to update address. Please try again.", "error");
-        }
+let editDashboardMap = null;
+let editDashboardMarker = null;
+let editDashboardAutocomplete = null;
+
+window.openEditAddressModal = (orderId) => {
+    const order = myCurrentOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    document.getElementById('edit-order-id').value = orderId;
+    document.getElementById('edit-address-text').value = order.address || '';
+    
+    let initialLat = order.location && order.location.lat ? parseFloat(order.location.lat) : 24.833946;
+    let initialLng = order.location && order.location.lng ? parseFloat(order.location.lng) : 92.828822;
+    
+    document.getElementById('edit-lat-input').value = initialLat;
+    document.getElementById('edit-lng-input').value = initialLng;
+
+    const modal = document.getElementById('edit-address-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    if (!editDashboardMap) {
+        editDashboardMap = new google.maps.Map(document.getElementById("edit-checkout-map"), {
+            center: { lat: initialLat, lng: initialLng },
+            zoom: 16,
+            disableDefaultUI: true,
+            zoomControl: true,
+            mapTypeId: 'roadmap',
+            styles: [
+                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+                { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+            ]
+        });
+
+        editDashboardMap.addListener('dragend', function() {
+            const center = editDashboardMap.getCenter();
+            document.getElementById('edit-lat-input').value = center.lat();
+            document.getElementById('edit-lng-input').value = center.lng();
+        });
+
+        const input = document.getElementById('edit-map-search-input');
+        editDashboardAutocomplete = new google.maps.places.Autocomplete(input, { fields: ["place_id", "geometry", "name"] });
+        editDashboardAutocomplete.bindTo("bounds", editDashboardMap);
+
+        editDashboardAutocomplete.addListener('place_changed', function() {
+            const place = editDashboardAutocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) return;
+
+            if (place.geometry.viewport) {
+                editDashboardMap.fitBounds(place.geometry.viewport);
+            } else {
+                editDashboardMap.setCenter(place.geometry.location);
+                editDashboardMap.setZoom(17);
+            }
+            document.getElementById('edit-lat-input').value = place.geometry.location.lat();
+            document.getElementById('edit-lng-input').value = place.geometry.location.lng();
+        });
+    } else {
+        editDashboardMap.setCenter({ lat: initialLat, lng: initialLng });
     }
 };
+
+window.closeEditAddressModal = () => {
+    const modal = document.getElementById('edit-address-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};
+
+const editAddressForm = document.getElementById('edit-address-form');
+if (editAddressForm) {
+    editAddressForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const orderId = document.getElementById('edit-order-id').value;
+        const newAddress = document.getElementById('edit-address-text').value.trim();
+        const newLat = document.getElementById('edit-lat-input').value;
+        const newLng = document.getElementById('edit-lng-input').value;
+
+        if (!orderId || !newAddress) return;
+
+        const submitBtn = document.getElementById('submit-edit-address-btn');
+        submitBtn.innerText = "Saving...";
+        submitBtn.disabled = true;
+
+        try {
+            await updateDoc(doc(db, "orders", orderId), {
+                address: newAddress,
+                location: {
+                    lat: Number(newLat),
+                    lng: Number(newLng)
+                }
+            });
+            showToast("Delivery location updated successfully!", "success");
+            window.closeEditAddressModal();
+        } catch (error) {
+            console.error("Error updating location:", error);
+            showToast("Failed to update location.", "error");
+        } finally {
+            submitBtn.innerText = "Save Location";
+            submitBtn.disabled = false;
+        }
+    });
+}
 
 window.reorder = (orderId) => {
     const order = myCurrentOrders.find(o => o.id === orderId);

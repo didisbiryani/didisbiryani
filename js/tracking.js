@@ -220,29 +220,31 @@ function renderTracking(order) {
     const etaText = document.getElementById('eta-text');
     const statusHeadline = document.getElementById('status-headline');
     
-    if (order.status === 'Rejected') {
-        etaText.innerText = "Cancelled";
-        etaText.classList.replace('text-brand-gold', 'text-brand-red');
-        statusHeadline.innerText = "Order Cancelled by Restaurant";
-    } else if (order.status === 'Delivered' || order.status === 'Collected') {
-        etaText.innerText = "Completed";
-        etaText.classList.replace('text-brand-gold', 'text-green-400');
-        statusHeadline.innerText = `Successfully ${order.status}`;
-    } else {
-        etaText.classList.replace('text-brand-red', 'text-brand-gold');
-        etaText.classList.replace('text-green-400', 'text-brand-gold');
-        
-        if (isPickup) {
-            if(order.status === 'Pending') { etaText.innerText = "Awaiting"; statusHeadline.innerText = "Waiting for restaurant to accept"; }
-            else if(order.status === 'Accepted') { etaText.innerText = "45 mins"; statusHeadline.innerText = "Restaurant accepted your order"; }
-            else if(order.status === 'Cooking') { etaText.innerText = "30 mins"; statusHeadline.innerText = "Your food is being prepared"; }
-            else if(order.status === 'Ready to Collect') { etaText.innerText = "Ready!"; statusHeadline.innerText = "Please collect from store"; }
+    if (etaText && statusHeadline) {
+        if (order.status === 'Rejected') {
+            etaText.innerText = "Cancelled";
+            etaText.classList.replace('text-brand-gold', 'text-brand-red');
+            statusHeadline.innerText = "Order Cancelled by Restaurant";
+        } else if (order.status === 'Delivered' || order.status === 'Collected') {
+            etaText.innerText = "Completed";
+            etaText.classList.replace('text-brand-gold', 'text-green-400');
+            statusHeadline.innerText = `Successfully ${order.status}`;
         } else {
-            if(order.status === 'Pending') { etaText.innerText = "Awaiting"; statusHeadline.innerText = "Waiting for restaurant to accept"; }
-            else if(order.status === 'Accepted') { etaText.innerText = "45 mins"; statusHeadline.innerText = "Restaurant accepted your order"; }
-            else if(order.status === 'Cooking') { etaText.innerText = "30 mins"; statusHeadline.innerText = "Your food is being prepared"; }
-            else if(order.status === 'Ready for Delivery') { etaText.innerText = "Packing..."; statusHeadline.innerText = "Waiting for delivery partner"; }
-            else if(order.status === 'Out for Delivery') { etaText.innerText = "10 mins"; statusHeadline.innerText = "Delivery partner is on the way!"; }
+            etaText.classList.replace('text-brand-red', 'text-brand-gold');
+            etaText.classList.replace('text-green-400', 'text-brand-gold');
+            
+            if (isPickup) {
+                if(order.status === 'Pending') { etaText.innerText = "Awaiting"; statusHeadline.innerText = "Waiting for restaurant to accept"; }
+                else if(order.status === 'Accepted') { etaText.innerText = "45 mins"; statusHeadline.innerText = "Restaurant accepted your order"; }
+                else if(order.status === 'Cooking') { etaText.innerText = "30 mins"; statusHeadline.innerText = "Your food is being prepared"; }
+                else if(order.status === 'Ready to Collect') { etaText.innerText = "Ready!"; statusHeadline.innerText = "Please collect from store"; }
+            } else {
+                if(order.status === 'Pending') { etaText.innerText = "Awaiting"; statusHeadline.innerText = "Waiting for restaurant to accept"; }
+                else if(order.status === 'Accepted') { etaText.innerText = "45 mins"; statusHeadline.innerText = "Restaurant accepted your order"; }
+                else if(order.status === 'Cooking') { etaText.innerText = "30 mins"; statusHeadline.innerText = "Your food is being prepared"; }
+                else if(order.status === 'Ready for Delivery') { etaText.innerText = "Packing..."; statusHeadline.innerText = "Waiting for delivery partner"; }
+                else if(order.status === 'Out for Delivery') { etaText.innerText = "10 mins"; statusHeadline.innerText = "Delivery partner is on the way!"; }
+            }
         }
     }
 

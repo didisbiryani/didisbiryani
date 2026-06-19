@@ -99,15 +99,6 @@
         startDebuggerTrap();
     }
 
-    // 5. Size Differential DevTools Detector (docked panel check)
-    setInterval(function() {
-        const threshold = 160;
-        const widthDiff = window.outerWidth - window.innerWidth;
-        const heightDiff = window.outerHeight - window.innerHeight;
-        
-        // Exclude typical OS scrollbar margins / frame sizes
-        if (widthDiff > threshold || heightDiff > threshold) {
-            triggerSecurityAction("Console Window Open");
-        }
-    }, 1000);
+    // 5. Size Differential DevTools Detector (Removed due to zoom false-positives)
+    // The debugger trap (4) is sufficient for preventing console inspection.
 })();

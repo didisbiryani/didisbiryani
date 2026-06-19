@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     } else {
         res.setHeader('Access-Control-Allow-Origin', 'https://didisbiryani.in');
     }
-    
+
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') return res.status(200).end();
@@ -103,14 +103,14 @@ export default async function handler(req, res) {
                 const duplicateCheck = await adminDb.collection('orders')
                     .where('razorpayPaymentId', '==', paymentId)
                     .get();
-                
+
                 let isDuplicate = false;
                 duplicateCheck.forEach(doc => {
                     if (doc.id !== orderId) {
                         isDuplicate = true;
                     }
                 });
-                
+
                 if (isDuplicate) {
                     console.error(`Replay attack detected! paymentId ${paymentId} already used.`);
                     return res.status(400).json({ success: false, error: 'Replay attack blocked: Payment ID already used.' });
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
 
                 const orderRef = adminDb.collection('orders').doc(orderId);
                 const orderSnap = await orderRef.get();
-                
+
                 if (orderSnap.exists) {
                     const orderData = orderSnap.data();
                     const updatePayload = {

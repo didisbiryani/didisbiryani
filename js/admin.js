@@ -41,7 +41,7 @@ try {
     }).catch(e => {
         console.error("Error processing Google redirect login inside admin:", e);
     });
-} catch(e) {}
+} catch (e) { }
 
 window.handleAdminEmailLogin = async () => {
     const email = document.getElementById('admin-login-email').value.trim();
@@ -275,23 +275,23 @@ function updateStoreStatusUI() {
     const settingsAutoPrintSelect = document.getElementById('settingsAutoPrintSelect');
     if (settingsAutoPrintSelect) settingsAutoPrintSelect.value = currentStoreSettings.autoPrint === true ? 'true' : 'false';
     if (settingsAddr) settingsAddr.value = currentStoreSettings.address || '';
-    
+
     // Store Location Map initialization
     const settingsLatInput = document.getElementById('settingsStoreLat');
     const settingsLngInput = document.getElementById('settingsStoreLng');
-    
+
     if (settingsLatInput && currentStoreSettings.location) {
         settingsLatInput.value = currentStoreSettings.location.lat || '';
     }
     if (settingsLngInput && currentStoreSettings.location) {
         settingsLngInput.value = currentStoreSettings.location.lng || '';
     }
-    
+
     if (window.google && document.getElementById('settings-store-map')) {
-        const defaultLocation = (currentStoreSettings.location && currentStoreSettings.location.lat) ? 
-            { lat: currentStoreSettings.location.lat, lng: currentStoreSettings.location.lng } : 
+        const defaultLocation = (currentStoreSettings.location && currentStoreSettings.location.lat) ?
+            { lat: currentStoreSettings.location.lat, lng: currentStoreSettings.location.lng } :
             { lat: 24.8333, lng: 92.7789 }; // Silchar Default
-            
+
         const storeMap = new google.maps.Map(document.getElementById('settings-store-map'), {
             center: defaultLocation,
             zoom: 15,
@@ -309,7 +309,7 @@ function updateStoreStatusUI() {
             const center = storeMap.getCenter();
             if (settingsLatInput) settingsLatInput.value = center.lat();
             if (settingsLngInput) settingsLngInput.value = center.lng();
-            
+
             const geocoder = new google.maps.Geocoder();
             geocoder.geocode({ location: center }, (results, status) => {
                 if (status === "OK" && results[0] && settingsAddr) {
@@ -327,7 +327,7 @@ function updateStoreStatusUI() {
             searchBox.addListener('places_changed', () => {
                 const places = searchBox.getPlaces();
                 if (places.length == 0) return;
-                
+
                 const bounds = new google.maps.LatLngBounds();
                 places.forEach(place => {
                     if (!place.geometry || !place.geometry.location) return;
@@ -342,7 +342,7 @@ function updateStoreStatusUI() {
             });
         }
     }
-    
+
     if (settingsAllowedCities) settingsAllowedCities.value = currentStoreSettings.allowedCities || '';
     if (settingsAllowedZips) settingsAllowedZips.value = currentStoreSettings.allowedZips || '';
     if (settingsDel) settingsDel.value = currentStoreSettings.deliveryCharge !== undefined ? currentStoreSettings.deliveryCharge : 40;
@@ -931,7 +931,7 @@ window.updateOrderStatus = async (id, status) => {
     }
 
     const timestampStr = new Date().toISOString();
-    await updateDoc(doc(db, "orders", id), { 
+    await updateDoc(doc(db, "orders", id), {
         status,
         [`statusTimestamps.${status}`]: timestampStr
     });
@@ -975,7 +975,7 @@ window.updateOrderStatus = async (id, status) => {
                     const pushUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/send-push' : '/api/send-push';
                     fetch(pushUrl, {
                         method: 'POST',
-                        headers: { 
+                        headers: {
                             'Content-Type': 'application/json',
                             'Authorization': token ? `Bearer ${token}` : ''
                         },
@@ -1079,8 +1079,8 @@ function renderAdminOrders() {
                 if (i.variantLabel) key += ` - ${i.variantLabel}`;
                 if (i.quantityLabel) key += ` [${i.quantityLabel}]`;
                 if (i.customizations) {
-                     const custStr = Object.values(i.customizations).join(', ');
-                     if (custStr) key += ` (${custStr})`;
+                    const custStr = Object.values(i.customizations).join(', ');
+                    if (custStr) key += ` (${custStr})`;
                 }
                 if (!prepMap[key]) prepMap[key] = 0;
                 prepMap[key] += Number(i.quantity);
@@ -1327,11 +1327,11 @@ window.openCustomerDetailsModal = (userId) => {
     const name = user.name || 'Anonymous';
     const phone = user.phone || 'N/A';
     const email = user.email || 'N/A';
-    
+
     // Get orders
     let userOrders = allOrders.filter(o => o.userId === userId);
     userOrders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Newest first
-    
+
     const completedOrders = userOrders.filter(o => ['Delivered', 'Collected'].includes(o.status));
     const activeOrders = userOrders.filter(o => !['Rejected'].includes(o.status));
     const totalSpent = activeOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
@@ -1351,7 +1351,7 @@ window.openCustomerDetailsModal = (userId) => {
 
     // Populate Quick Actions
     document.getElementById('cd-btn-gift').onclick = () => window.openGiftWalletModal(user.id, name);
-    document.getElementById('cd-btn-whatsapp').href = `https://wa.me/91${phone.replace(/\D/g,'')}`;
+    document.getElementById('cd-btn-whatsapp').href = `https://wa.me/91${phone.replace(/\D/g, '')}`;
 
     // Populate Quick Stats
     document.getElementById('cd-stats').innerHTML = `
@@ -1418,7 +1418,7 @@ window.openCustomerDetailsModal = (userId) => {
             const timePlaced = o.timestamp ? safeFormatDate(o.timestamp, 'datetime') : 'Unknown';
             let summaryItems = (o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
             if (summaryItems.length > 50) summaryItems = summaryItems.substring(0, 50) + '...';
-            
+
             // Status Color Map
             const sColors = {
                 'Pending': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
@@ -1436,7 +1436,7 @@ window.openCustomerDetailsModal = (userId) => {
             // Timeline calculations
             let tAccepted = o.statusTimestamps && o.statusTimestamps['Accepted'] ? safeFormatDate(o.statusTimestamps['Accepted'], 'time') : null;
             let tDelivered = o.statusTimestamps && (o.statusTimestamps['Delivered'] || o.statusTimestamps['Collected']) ? safeFormatDate((o.statusTimestamps['Delivered'] || o.statusTimestamps['Collected']), 'time') : null;
-            
+
             feedHtml += `
                 <div class="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
@@ -1719,7 +1719,7 @@ document.getElementById('chat-input-form').addEventListener('submit', async (e) 
                 const pushUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/send-push' : '/api/send-push';
                 fetch(pushUrl, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Authorization': token ? `Bearer ${token}` : ''
                     },
@@ -1732,7 +1732,7 @@ document.getElementById('chat-input-form').addEventListener('submit', async (e) 
                 }).catch(err => console.error("Push Notification Error (Chat):", err));
             }
         }
-    } catch(err) {
+    } catch (err) {
         console.error("Error fetching user token for chat push:", err);
     }
 });
@@ -1741,7 +1741,7 @@ document.getElementById('chat-input-form').addEventListener('submit', async (e) 
 window.sendWhatsAppPaymentLink = (orderId, amount, phone) => {
     const paymentUrl = `https://didisbiryani.in/payment.html?orderId=${orderId}`;
     const text = `Hi! Please pay ₹${amount} for your order from Didi's Biryani using this secure link: \n\n${paymentUrl}`;
-    
+
     // Extract numbers only
     let formattedPhone = phone ? String(phone).replace(/\D/g, '') : '';
     if (formattedPhone.length === 10) formattedPhone = '91' + formattedPhone;
@@ -1765,7 +1765,7 @@ window.viewOrderDetails = (id) => {
     // Customer
     document.getElementById('detail-cust-name').innerText = o.customer;
     document.getElementById('detail-cust-address').innerText = o.address;
-    
+
     const mapLink = document.getElementById('detail-cust-map-link');
     if (mapLink) {
         if (o.location && o.location.lat && o.location.lng) {
@@ -1775,7 +1775,7 @@ window.viewOrderDetails = (id) => {
             mapLink.classList.add('hidden');
         }
     }
-    
+
     document.getElementById('detail-cust-email').innerText = o.email || 'N/A';
     document.getElementById('detail-cust-phone').innerText = o.phone || 'N/A';
     document.getElementById('detail-notes').innerText = o.notes || 'No special instructions provided.';
@@ -1835,7 +1835,7 @@ window.viewOrderDetails = (id) => {
                     const btnHtml = razorpayVerifyBtn.innerHTML;
                     razorpayVerifyBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Verifying...';
                     if (window.lucide) window.lucide.createIcons();
-                    
+
                     const paymentId = o.paymentId;
                     if (!paymentId) {
                         showToast("No Razorpay Payment ID found on this order.", "error");
@@ -1847,7 +1847,7 @@ window.viewOrderDetails = (id) => {
                     const token = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
                     const captureRes = await fetch('/api/verify-payment', {
                         method: 'POST',
-                        headers: { 
+                        headers: {
                             'Content-Type': 'application/json',
                             'Authorization': token ? `Bearer ${token}` : ''
                         },
@@ -1869,7 +1869,7 @@ window.viewOrderDetails = (id) => {
                         }, { merge: true });
                         viewOrderDetails(o.id);
                     }
-                } catch(e) {
+                } catch (e) {
                     console.error("Verification error", e);
                     showToast("Error verifying payment.", "error");
                 } finally {
@@ -1900,7 +1900,7 @@ window.viewOrderDetails = (id) => {
     itemsList.innerHTML = '';
     (o.items || []).forEach(i => {
         const itemTotal = i.price * i.quantity;
-        
+
         let addonHtml = '';
         if (i.addonDetails && i.addonDetails.length > 0) {
             addonHtml = `<div class="mt-2 flex flex-wrap gap-2">`;
@@ -1951,12 +1951,12 @@ window.viewOrderDetails = (id) => {
                     basePrice = Number(v.price);
                 }
             }
-            
+
             let addonsPrice = 0;
             if (i.addonDetails && i.addonDetails.length > 0) {
                 i.addonDetails.forEach(ad => addonsPrice += Number(ad.price));
             }
-            
+
             expectedTotal += (basePrice + addonsPrice) * Number(i.quantity);
         } else {
             expectedTotal += Number(i.price) * Number(i.quantity);
@@ -2006,7 +2006,7 @@ window.viewOrderDetails = (id) => {
     if (timelineSection && analyticsCards && eventsList) {
         if (o.statusTimestamps && Object.keys(o.statusTimestamps).length > 0) {
             timelineSection.classList.remove('hidden');
-            
+
             const flow = [
                 { id: 'Pending', label: 'Order Placed', icon: 'shopping-cart', color: 'text-blue-400' },
                 { id: 'Accepted', label: 'Order Accepted', icon: 'check-circle', color: 'text-green-400' },
@@ -2025,7 +2025,7 @@ window.viewOrderDetails = (id) => {
 
             let eventsHtml = '';
             let sortedStamps = [];
-            
+
             for (let f of flow) {
                 if (o.statusTimestamps[f.id]) {
                     sortedStamps.push({
@@ -2034,9 +2034,9 @@ window.viewOrderDetails = (id) => {
                     });
                 }
             }
-            
+
             sortedStamps.sort((a, b) => a.time - b.time);
-            
+
             sortedStamps.forEach((evt) => {
                 const timeStr = safeFormatDate(evt.time.toISOString(), 'time');
                 eventsHtml += `
@@ -2052,7 +2052,7 @@ window.viewOrderDetails = (id) => {
             eventsList.innerHTML = eventsHtml;
 
             const diffMins = (start, end) => start && end ? Math.round((new Date(end) - new Date(start)) / 60000) : null;
-            
+
             const tAccepted = o.statusTimestamps['Accepted'];
             const tReady = o.statusTimestamps['Ready for Delivery'] || o.statusTimestamps['Ready to Collect'];
             const tDelivered = o.statusTimestamps['Delivered'] || o.statusTimestamps['Collected'];
@@ -3672,6 +3672,9 @@ window.toggleBannerLinkTypeField = () => {
     }
 };
 
+let adminEditMap = null;
+let adminEditAutocomplete = null;
+
 window.openEditOrderModal = () => {
     if (!viewingOrderId) return;
     const o = allOrders.find(ord => ord.id === viewingOrderId);
@@ -3683,7 +3686,59 @@ window.openEditOrderModal = () => {
     document.getElementById('edit-order-address').value = o.address || '';
     document.getElementById('edit-order-notes').value = o.notes || '';
 
+    let initialLat = o.location && o.location.lat ? parseFloat(o.location.lat) : 24.833946;
+    let initialLng = o.location && o.location.lng ? parseFloat(o.location.lng) : 92.828822;
+
+    document.getElementById('admin-edit-lat').value = initialLat;
+    document.getElementById('admin-edit-lng').value = initialLng;
+
     window.showModal('edit-order-modal');
+
+    if (!adminEditMap) {
+        adminEditMap = new google.maps.Map(document.getElementById("admin-edit-map"), {
+            center: { lat: initialLat, lng: initialLng },
+            zoom: 16,
+            disableDefaultUI: true,
+            zoomControl: true,
+            mapTypeId: 'roadmap',
+            styles: [
+                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+                { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+            ]
+        });
+
+        adminEditMap.addListener('dragend', function() {
+            const center = adminEditMap.getCenter();
+            document.getElementById('admin-edit-lat').value = center.lat();
+            document.getElementById('admin-edit-lng').value = center.lng();
+        });
+
+        const input = document.getElementById('admin-map-search-input');
+        adminEditAutocomplete = new google.maps.places.Autocomplete(input, { fields: ["place_id", "geometry", "name"] });
+        adminEditAutocomplete.bindTo("bounds", adminEditMap);
+
+        adminEditAutocomplete.addListener('place_changed', function() {
+            const place = adminEditAutocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) return;
+
+            if (place.geometry.viewport) {
+                adminEditMap.fitBounds(place.geometry.viewport);
+            } else {
+                adminEditMap.setCenter(place.geometry.location);
+                adminEditMap.setZoom(17);
+            }
+            document.getElementById('admin-edit-lat').value = place.geometry.location.lat();
+            document.getElementById('admin-edit-lng').value = place.geometry.location.lng();
+        });
+    } else {
+        adminEditMap.setCenter({ lat: initialLat, lng: initialLng });
+    }
 };
 
 window.saveOrderEdits = async () => {
@@ -3695,13 +3750,20 @@ window.saveOrderEdits = async () => {
     const address = document.getElementById('edit-order-address').value.trim();
     const notes = document.getElementById('edit-order-notes').value.trim();
 
+    const lat = document.getElementById('admin-edit-lat').value;
+    const lng = document.getElementById('admin-edit-lng').value;
+
     try {
         await updateDoc(doc(db, "orders", viewingOrderId), {
             customer: name,
             phone: phone,
             email: email,
             address: address,
-            notes: notes
+            notes: notes,
+            location: {
+                lat: Number(lat),
+                lng: Number(lng)
+            }
         });
         showToast("Order details updated successfully!", "success");
         window.hideModal('edit-order-modal');
@@ -3736,7 +3798,7 @@ window.openEditOrderItemsModal = () => {
     if (!o) return;
 
     document.getElementById('edit-items-order-id').innerText = `Order #${o.orderNumber || o.id.substring(0, 6).toUpperCase()}`;
-    
+
     // Deep copy items
     editOrderItemsState = JSON.parse(JSON.stringify(o.items || []));
     editOrderOriginalDelivery = Number(o.deliveryCharge || 0);
@@ -3809,16 +3871,16 @@ function renderEditOrderItems() {
     document.getElementById('edit-items-tax').innerText = `₹${editOrderOriginalTax}`;
     document.getElementById('edit-items-discount').innerText = `-₹${editOrderOriginalDiscount}`;
     document.getElementById('edit-items-total').innerText = `₹${newGrandTotal > 0 ? newGrandTotal : 0}`;
-    
+
     // Payment Difference UI
     const diffContainer = document.getElementById('edit-items-payment-diff');
     if (diffContainer) {
         diffContainer.classList.remove('hidden');
         const diff = (newGrandTotal > 0 ? newGrandTotal : 0) - editOrderOriginalGrandTotal;
         const isOnline = !String(editOrderPaymentMethod).toLowerCase().includes('cod') && !String(editOrderPaymentMethod).toLowerCase().includes('cash');
-        
+
         let diffHtml = `<div class="mb-1 text-white/50 text-xs font-normal">Original: ₹${editOrderOriginalGrandTotal} | New: ₹${newGrandTotal > 0 ? newGrandTotal : 0}</div>`;
-        
+
         if (diff > 0) {
             diffHtml += `<span class="text-green-400">Extra Amount to Collect: +₹${diff}</span>`;
             diffContainer.className = 'mt-4 p-3 rounded-xl border border-green-500/30 bg-green-500/10 text-center font-bold text-sm';
@@ -3829,16 +3891,16 @@ function renderEditOrderItems() {
             diffHtml += `<span class="text-brand-white">No Payment Difference</span>`;
             diffContainer.className = 'mt-4 p-3 rounded-xl border border-white/10 bg-white/5 text-center font-bold text-sm';
         }
-        
+
         if (!isOnline) {
-             diffHtml += `<div class="mt-1 text-brand-gold text-[10px] font-black uppercase tracking-wider">Cash on Delivery Order</div>`;
+            diffHtml += `<div class="mt-1 text-brand-gold text-[10px] font-black uppercase tracking-wider">Cash on Delivery Order</div>`;
         } else {
-             diffHtml += `<div class="mt-1 text-brand-gold text-[10px] font-black uppercase tracking-wider">Online Paid Order</div>`;
+            diffHtml += `<div class="mt-1 text-brand-gold text-[10px] font-black uppercase tracking-wider">Online Paid Order</div>`;
         }
-        
+
         diffContainer.innerHTML = diffHtml;
     }
-    
+
     if (window.lucide) lucide.createIcons();
 }
 
@@ -3862,11 +3924,11 @@ let editExistingItemIndex = null;
 window.editExistingItemCustomization = (index) => {
     const orderItem = editOrderItemsState[index];
     if (!orderItem) return;
-    
+
     // For addons-only items, we map back to the original item by removing '-addons'
     const originalId = orderItem.id.replace('-addons', '');
     const menuItem = allMenu.find(m => m.id === originalId);
-    
+
     if (!menuItem) {
         showToast("Original menu item not found for editing.", "error");
         return;
@@ -3905,7 +3967,7 @@ window.addEditOrderItem = () => {
 
     // Check if item already exists in edit list without addons/variants
     const existingIndex = editOrderItemsState.findIndex(i => i.id === itemId && !i.variantLabel && (!i.addonDetails || i.addonDetails.length === 0));
-    
+
     if (existingIndex > -1) {
         editOrderItemsState[existingIndex].quantity += 1;
     } else {
@@ -3918,7 +3980,7 @@ window.addEditOrderItem = () => {
             category: menuItem.category || 'Other'
         });
     }
-    
+
     select.value = '';
     renderEditOrderItems();
 };
@@ -3941,15 +4003,15 @@ window.saveEditOrderItems = async (event) => {
 
     const newGrandTotal = newSubtotal + editOrderOriginalDelivery + editOrderOriginalTax - editOrderOriginalDiscount;
     const finalTotal = newGrandTotal > 0 ? newGrandTotal : 0;
-    
+
     // We also need to get the original order to recalculate amountDue properly
     const o = allOrders.find(ord => ord.id === viewingOrderId);
     if (!o) return;
-    
+
     // Amount Due Logic
     let newAmountDue = finalTotal;
     const isOnline = !String(editOrderPaymentMethod).toLowerCase().includes('cod') && !String(editOrderPaymentMethod).toLowerCase().includes('cash');
-    
+
     if (!isOnline) {
         // For Cash On Delivery, they haven't paid anything online yet, so amountDue is always the FULL new total.
         newAmountDue = finalTotal;
@@ -3957,13 +4019,13 @@ window.saveEditOrderItems = async (event) => {
         // For Online Paid orders, they have already paid the original total.
         // If amountDue wasn't updated to 0 previously (due to old logic), we assume it should have been 0.
         let originalAmountDue = o.amountDue !== undefined ? Number(o.amountDue) : 0;
-        
+
         // If originalAmountDue is exactly equal to the old total, it means verify-payment didn't set it to 0. 
         // We auto-correct it to 0 here.
         if (originalAmountDue === editOrderOriginalGrandTotal) {
             originalAmountDue = 0;
         }
-        
+
         const diff = finalTotal - editOrderOriginalGrandTotal;
         newAmountDue = Math.max(0, originalAmountDue + diff);
     }
@@ -3983,7 +4045,7 @@ window.saveEditOrderItems = async (event) => {
             subtotal: newSubtotal,
             amountDue: newAmountDue
         });
-        
+
         showToast("Order items updated successfully!", "success");
         window.hideModal('edit-order-items-modal');
 
@@ -4142,11 +4204,11 @@ window.searchManualCustomer = async () => {
         // 1. Check orders collection for previous orders by this phone
         const qOrders = query(collection(db, "orders"), where("phone", "==", phoneInput));
         const orderSnap = await getDocs(qOrders);
-        
+
         let foundName = '';
         let foundAddress = '';
         let foundEmail = '';
-        
+
         if (!orderSnap.empty) {
             // Get the most recent order by sorting or just picking the first one
             // We sort by timestamp descending locally if there are multiple
@@ -4175,7 +4237,7 @@ window.searchManualCustomer = async () => {
         }
 
         document.getElementById('manualCustPhone').value = phoneInput;
-        
+
         if (foundName || foundAddress) {
             document.getElementById('manualCustName').value = foundName;
             document.getElementById('manualCustAddress').value = foundAddress;
@@ -4229,12 +4291,12 @@ window.saveManualCustomerDetails = async () => {
 window.renderManualMenuSelect = () => {
     const select = document.getElementById('manualMenuSelect');
     if (!select) return;
-    
+
     let html = `<option value="">-- Select a Menu Item --</option>`;
-    
+
     // allMenu is already loaded globally by admin.js
     const availableItems = allMenu.filter(i => i.status === 'Available');
-    
+
     // Group by category
     const grouped = {};
     availableItems.forEach(item => {
@@ -4270,13 +4332,13 @@ window.openManualCustomizationModal = (item) => {
     manualCustItem = item;
     manualCustQty = 1;
     manualCustSelectedVariantPrice = item.variants && item.variants.length > 0 ? Number(item.variants[0].price) : Number(item.price);
-    
+
     document.getElementById('manual-cust-title').innerText = item.name;
     document.getElementById('manual-cust-qty').innerText = manualCustQty;
-    
+
     const content = document.getElementById('manual-cust-content');
     content.innerHTML = '';
-    
+
     // 1. Portion Size Variants Selection
     if (item.variants && item.variants.length > 0) {
         let variantHtml = `
@@ -4306,7 +4368,7 @@ window.openManualCustomizationModal = (item) => {
         `;
         content.innerHTML += variantHtml;
     }
-    
+
     // 2. Extra Addons Selection
     if (item.customizations && item.customizations.length > 0) {
         item.customizations.forEach(group => {
@@ -4340,12 +4402,12 @@ window.openManualCustomizationModal = (item) => {
             content.innerHTML += groupHtml;
         });
     }
-    
+
     const addonsOnlyCb = document.getElementById('manual-cust-addons-only');
-    if(addonsOnlyCb) addonsOnlyCb.checked = false; // Reset checkbox
+    if (addonsOnlyCb) addonsOnlyCb.checked = false; // Reset checkbox
 
     calculateManualCustTotal();
-    
+
     const modal = document.getElementById('manual-customization-modal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -4391,7 +4453,7 @@ window.updateManualAddonQty = (btnEl, change) => {
     qty += change;
     if (qty < 0) qty = 0;
     qtySpan.innerText = qty;
-    
+
     const row = btnEl.closest('.border-white\\/10');
     if (row) {
         if (qty > 0) {
@@ -4415,9 +4477,9 @@ window.updateManualCustQty = (change) => {
 window.calculateManualCustTotal = () => {
     const addonsOnlyCb = document.getElementById('manual-cust-addons-only');
     const isAddonsOnly = addonsOnlyCb && addonsOnlyCb.checked;
-    
+
     let basePrice = isAddonsOnly ? 0 : (manualCustSelectedVariantPrice !== null ? manualCustSelectedVariantPrice : Number(manualCustItem.price));
-    
+
     let addonsTotal = 0;
     document.querySelectorAll('.manual-addon-qty').forEach(span => {
         const qty = parseInt(span.innerText) || 0;
@@ -4437,14 +4499,14 @@ window.confirmManualCustomization = () => {
     const customizations = {};
     const addonDetails = [];
     let addonsCost = 0;
-    
+
     let variantLabel = null;
     const selectedRadio = document.querySelector('input[name="manual-variant-choice"]:checked');
     if (selectedRadio) {
         variantLabel = selectedRadio.getAttribute('data-variant-label');
         customizations['Portion'] = variantLabel;
     }
-    
+
     document.querySelectorAll('#manual-cust-content .cust-group:not(.variant-selection-group)').forEach(group => {
         const groupName = group.getAttribute('data-group-name');
         const activeSpans = Array.from(group.querySelectorAll('.manual-addon-qty')).filter(span => (parseInt(span.innerText) || 0) > 0);
@@ -4467,13 +4529,13 @@ window.confirmManualCustomization = () => {
             customizations[groupName] = choicesList.join(', ');
         }
     });
-    
+
     const addonsOnlyCb = document.getElementById('manual-cust-addons-only');
     const isAddonsOnly = addonsOnlyCb && addonsOnlyCb.checked;
 
     const basePrice = isAddonsOnly ? 0 : (manualCustSelectedVariantPrice !== null ? manualCustSelectedVariantPrice : Number(manualCustItem.price));
     const combinedUnitPrice = basePrice + addonsCost;
-    
+
     const finalName = isAddonsOnly ? `${manualCustItem.name} (Customizations Only)` : manualCustItem.name;
     const finalVariantLabel = isAddonsOnly ? null : variantLabel;
 
@@ -4582,8 +4644,8 @@ window.renderManualCart = () => {
         const customizationsList = item.customizations && Object.keys(item.customizations).length > 0
             ? Object.entries(item.customizations).map(([group, val]) => `${group}: ${val}`).join(' | ')
             : '';
-        const customizationsHtml = customizationsList 
-            ? `<p class="text-[9px] text-brand-gold/80 italic mt-0.5 truncate">${customizationsList}</p>` 
+        const customizationsHtml = customizationsList
+            ? `<p class="text-[9px] text-brand-gold/80 italic mt-0.5 truncate">${customizationsList}</p>`
             : '';
 
         container.innerHTML += `
@@ -4615,14 +4677,14 @@ window.updateManualTotals = () => {
 
     const type = document.getElementById('manualOrderType').value;
     let deliveryCharge = 0;
-    
+
     if (type === 'delivery') {
         const dcInput = document.getElementById('manualDeliveryCharge').value;
         deliveryCharge = dcInput ? Number(dcInput) : 40;
     } else {
         document.getElementById('manualDeliveryCharge').value = 0;
     }
-    
+
     const taxInput = document.getElementById('manualTax').value;
     const tax = taxInput ? Number(taxInput) : 0;
 
@@ -4659,7 +4721,7 @@ window.submitManualOrder = async () => {
 
     try {
         const timestamp = new Date().toISOString();
-        
+
         let orderNumber = null;
         try {
             const counterRef = doc(db, "counters", "orders");
@@ -4732,7 +4794,7 @@ window.submitManualOrder = async () => {
             const token = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
             fetch('/api/send-telegram', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Authorization': token ? `Bearer ${token}` : ''
                 },
@@ -4750,10 +4812,10 @@ window.submitManualOrder = async () => {
                     taxAmount: orderData.taxAmount
                 })
             }).catch(err => console.error('Telegram notification failed:', err));
-        } catch(e) { console.error('Telegram error:', e); }
+        } catch (e) { console.error('Telegram error:', e); }
 
         showToast(`Manual Order #${orderNumber} placed successfully!`, "success");
-        
+
         // Reset POS Form
         manualCart = [];
         document.getElementById('manualCustName').value = '';
@@ -4776,7 +4838,7 @@ window.submitManualOrder = async () => {
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
-        if(window.lucide) window.lucide.createIcons();
+        if (window.lucide) window.lucide.createIcons();
     }
 };
 
@@ -4794,7 +4856,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Sending...';
             btn.disabled = true;
-            if(window.lucide) window.lucide.createIcons();
+            if (window.lucide) window.lucide.createIcons();
 
             try {
                 // Fetch all users
@@ -4818,7 +4880,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pushUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/send-push' : '/api/send-push';
                 const res = await fetch(pushUrl, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Authorization': token ? `Bearer ${token}` : ''
                     },
@@ -4831,17 +4893,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (!res.ok) throw new Error("Failed to send broadcast");
-                
+
                 showToast(`Successfully sent to ${fcmTokens.length} customers!`, "success");
                 document.getElementById('broadcast-form').reset();
 
-            } catch(err) {
+            } catch (err) {
                 console.error("Broadcast Error:", err);
                 showToast("Error sending broadcast notification.", "error");
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                if(window.lucide) window.lucide.createIcons();
+                if (window.lucide) window.lucide.createIcons();
             }
         });
     }

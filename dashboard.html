@@ -11,6 +11,7 @@
     
     
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDac0HRwWL2pvJZCO3TOE6rwwl_FuYpfbc&libraries=places"></script>
 </head>
 <body class="bg-brand-black text-brand-white min-h-screen pb-20 overflow-x-hidden">
     
@@ -207,6 +208,38 @@
                 
                 <button type="submit" id="submit-review-btn" class="w-full py-3 bg-brand-gold text-brand-black font-black text-sm rounded-xl hover:bg-white transition-colors uppercase tracking-wider mt-2">
                     Submit Review
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Address Modal -->
+    <div id="edit-address-modal" class="fixed inset-0 bg-[#0a0a0a]/90 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-[#111] border border-brand-gold/30 rounded-3xl w-full max-w-md p-6 shadow-2xl relative">
+            <button onclick="closeEditAddressModal()" class="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full text-brand-white/50 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+            <h3 class="text-xl font-black text-brand-white mb-2">Edit Delivery Location</h3>
+            <p class="text-xs text-brand-white/50 mb-4">Drag the map pin to your exact location.</p>
+            
+            <form id="edit-address-form" class="space-y-4">
+                <input type="hidden" id="edit-order-id">
+                <input type="hidden" id="edit-lat-input">
+                <input type="hidden" id="edit-lng-input">
+                
+                <input type="text" id="edit-map-search-input" placeholder="Search for area, street name..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-brand-white focus:outline-none focus:border-brand-gold">
+                
+                <div class="relative w-full h-48 rounded-xl overflow-hidden border border-white/10 mb-2 mt-2">
+                    <div id="edit-checkout-map" class="w-full h-full"></div>
+                    <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                        <i data-lucide="map-pin" class="w-8 h-8 text-brand-red animate-bounce fill-brand-red" style="padding-bottom: 16px;"></i>
+                    </div>
+                </div>
+                
+                <textarea id="edit-address-text" rows="3" placeholder="House No., Building Name, Landmark..." class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-brand-gold text-xs leading-relaxed"></textarea>
+                
+                <button type="submit" id="submit-edit-address-btn" class="w-full py-3 bg-brand-gold text-brand-black font-black text-sm rounded-xl hover:bg-white transition-colors uppercase tracking-wider mt-2 shadow-[0_0_15px_rgba(212,160,23,0.3)]">
+                    Save Location
                 </button>
             </form>
         </div>

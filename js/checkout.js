@@ -13,9 +13,10 @@ let orderType = 'delivery';
 async function sendTelegramNotification(orderData) {
     try {
         const token = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
-        fetch('/api/send-telegram', {
+        const telegramUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/send-telegram' : '/api/send-telegram';
+        fetch(telegramUrl, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Authorization': token ? `Bearer ${token}` : ''
             },
@@ -40,7 +41,7 @@ async function sendTelegramNotification(orderData) {
         console.error('Telegram notification error:', e);
     }
 }
-let currentStoreSettings = { deliveryCharge: 40, taxPercentage: 5, minOrderForFreeDelivery: 499 };
+let currentStoreSettings = { deliveryCharge: 40, taxPercentage: 5, minOrderForFreeDelivery: 499, isOnline: true, storeMode: 'open' };
 
 let addressText = '';
 let phoneText = '';
@@ -71,7 +72,7 @@ window.adjustQty = (index, change) => {
         if (modal) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            if(window.lucide) lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
             return;
         }
     }
@@ -190,10 +191,10 @@ async function loadCrossSellItems() {
                         cartItem.isVeg = menuItem.isVeg;
                         cartUpdated = true;
                     }
-                    
+
                     const hasVariants = cartItem.variantLabel && cartItem.variantLabel !== '';
                     const hasCustomizations = cartItem.customizations && Object.keys(cartItem.customizations).length > 0;
-                    
+
                     if (!hasVariants && !hasCustomizations) {
                         if (cartItem.price !== menuItem.price) {
                             cartItem.price = menuItem.price;
@@ -422,10 +423,17 @@ window.removeCouponInline = () => {
 let checkoutMap = null;
 
 window.initCheckoutMap = () => {
-    const defaultLocation = (currentUser && currentUser.lat && currentUser.lng) ? 
-        { lat: Number(currentUser.lat), lng: Number(currentUser.lng) } : 
+    if (typeof google === 'undefined' || !google.maps || !google.maps.Map) {
+        setTimeout(window.initCheckoutMap, 500);
+        return;
+    }
+
+    if (checkoutMap) return; // Prevent double initialization
+
+    const defaultLocation = (currentUser && currentUser.lat && currentUser.lng) ?
+        { lat: Number(currentUser.lat), lng: Number(currentUser.lng) } :
         { lat: 24.8333, lng: 92.7789 }; // Silchar
-    
+
     checkoutMap = new google.maps.Map(document.getElementById('checkout-map'), {
         center: defaultLocation,
         zoom: 15,
@@ -443,7 +451,7 @@ window.initCheckoutMap = () => {
         const center = checkoutMap.getCenter();
         document.getElementById('lat-input').value = center.lat();
         document.getElementById('lng-input').value = center.lng();
-        
+
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: center }, (results, status) => {
             if (status === "OK" && results[0]) {
@@ -462,7 +470,7 @@ window.initCheckoutMap = () => {
     searchBox.addListener('places_changed', () => {
         const places = searchBox.getPlaces();
         if (places.length == 0) return;
-        
+
         const bounds = new google.maps.LatLngBounds();
         places.forEach(place => {
             if (!place.geometry || !place.geometry.location) return;
@@ -475,14 +483,22 @@ window.initCheckoutMap = () => {
         checkoutMap.fitBounds(bounds);
         setTimeout(() => google.maps.event.trigger(checkoutMap, 'dragend'), 500);
     });
-    
+
+    // Get GPS location if no valid currentUser location is already set
     if (navigator.geolocation && (!currentUser || !currentUser.lat)) {
         navigator.geolocation.getCurrentPosition(position => {
             const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
-            checkoutMap.setCenter(pos);
-            setTimeout(() => google.maps.event.trigger(checkoutMap, 'dragend'), 500);
-        });
+            if (checkoutMap) {
+                checkoutMap.setCenter(pos);
+                setTimeout(() => google.maps.event.trigger(checkoutMap, 'dragend'), 500);
+            }
+        }, () => { }, { timeout: 5000 });
     }
+
+    // Force a resize in case the container was initially hidden or didn't have layout
+    setTimeout(() => {
+        if (checkoutMap) google.maps.event.trigger(checkoutMap, 'resize');
+    }, 500);
 };
 
 window.saveAddressInline = () => {
@@ -494,7 +510,7 @@ window.saveAddressInline = () => {
         showToast("Please enter address details.", "error");
         return;
     }
-    
+
     addressText = addr;
     localStorage.setItem('didisLastAddress', addressText);
     if (lat && lng) {
@@ -509,7 +525,7 @@ window.saveAddressInline = () => {
             lng: lng ? Number(lng) : null
         }, { merge: true }).catch(e => console.error("Error saving address", e));
     }
-    
+
     document.getElementById('header-subtitle').innerText = "35-40 mins to Home | " + addressText;
 
     showToast("Address saved!", "success");
@@ -741,11 +757,11 @@ function renderOrderSummary() {
     let originalCartValue = 0;
     let baseItemsTotal = 0;
     let addonsHtml = '';
-    
+
     cart.forEach(item => {
         let itemBasePrice = item.price;
         let itemAddons = 0;
-        
+
         if (item.addonDetails && item.addonDetails.length > 0) {
             item.addonDetails.forEach(ad => {
                 itemAddons += ad.price;
@@ -759,15 +775,15 @@ function renderOrderSummary() {
             });
         }
         itemBasePrice -= itemAddons;
-        
+
         subtotal += (item.price * item.quantity);
         let orig = item.originalPrice ? item.originalPrice : itemBasePrice;
         originalCartValue += ((orig + itemAddons) * item.quantity);
         baseItemsTotal += (itemBasePrice * item.quantity);
     });
-    
+
     let storeDiscount = originalCartValue - subtotal;
-    
+
     // Auto-invalidate coupon if cart drops below min requirement
     const couponDataStr = localStorage.getItem('didisCouponData');
     if (couponDataStr) {
@@ -778,7 +794,7 @@ function renderOrderSummary() {
                 localStorage.removeItem('didisCouponType');
                 localStorage.removeItem('didisCouponData');
                 localStorage.setItem('didisDiscount', '0');
-                
+
                 // Clear UI elements
                 const pTag = document.getElementById('applied-promo-tag');
                 if (pTag) {
@@ -787,9 +803,9 @@ function renderOrderSummary() {
                 }
                 const pInput = document.getElementById('coupon-code-input');
                 if (pInput) pInput.value = '';
-                
+
                 showToast(`Coupon removed! Cart must be ₹${couponData.minOrder}+`, "error");
-                
+
                 setTimeout(() => renderOrderSummary(), 50);
                 return;
             }
@@ -797,11 +813,11 @@ function renderOrderSummary() {
             console.error("Error parsing coupon data", e);
         }
     }
-    
+
     const couponType = localStorage.getItem('didisCouponType') || '';
 
     let distanceStr = '';
-    
+
     if (orderType === 'pickup') {
         deliveryCharge = 0;
         document.getElementById('summary-delivery-charge').innerText = 'Free (Take-in)';
@@ -812,7 +828,7 @@ function renderOrderSummary() {
         const currentZip = document.getElementById('zip-input') ? document.getElementById('zip-input').value.trim() : '';
         const zones = currentStoreSettings.deliveryZones || [];
         const matchedZone = zones.find(z => z.zip === currentZip);
-        
+
         if (matchedZone) {
             deliveryCharge = matchedZone.charge !== undefined ? Number(matchedZone.charge) : (currentStoreSettings.deliveryCharge !== undefined ? currentStoreSettings.deliveryCharge : 40);
             if (matchedZone.distance) {
@@ -839,7 +855,7 @@ function renderOrderSummary() {
     const subtotalEl = document.getElementById('summary-subtotal');
     if (subtotalEl) {
         subtotalEl.innerText = baseItemsTotal.toFixed(2);
-        
+
         let addonsContainer = document.getElementById('summary-addons-container');
         if (!addonsContainer) {
             const subtotalRow = subtotalEl.closest('.flex');
@@ -890,7 +906,7 @@ function renderOrderSummary() {
     // Detailed bill rows
     const origValSpan = document.getElementById('summary-original-value');
     if (origValSpan) origValSpan.innerText = originalCartValue.toFixed(2);
-    
+
     const storeDiscRow = document.getElementById('summary-store-discount-row');
     if (storeDiscRow) {
         if (storeDiscount > 0) {
@@ -935,7 +951,7 @@ function renderOrderSummary() {
     const couponBtn = document.getElementById('coupon-action-btn');
     const savingsBanner = document.getElementById('savings-banner');
     const savingsAmt = document.getElementById('savings-amount');
-    
+
     // Live update coupons drawer state
     if (typeof renderCouponsInDrawer === 'function') {
         renderCouponsInDrawer();
@@ -976,7 +992,7 @@ function renderOrderSummary() {
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        
+
         let initialName = user.displayName || 'Customer';
         try {
             const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -997,12 +1013,14 @@ onAuthStateChanged(auth, async (user) => {
         document.getElementById('display-contact').innerText = `${nameText}${phoneText ? ', ' + phoneText : ''}`;
 
         addressText = localStorage.getItem('didisLastAddress') || '';
+        const displayAddressEl = document.getElementById('display-address');
         if (addressText) {
-            document.getElementById('display-address').innerText = addressText;
+            if (displayAddressEl) displayAddressEl.innerText = addressText;
             document.getElementById('header-subtitle').innerText = "35-40 mins to Home | " + addressText;
-            document.getElementById('address-input').value = addressText.split(',')[0] || '';
+            const addrInput = document.getElementById('address-input');
+            if (addrInput) addrInput.value = addressText.split(',')[0] || '';
         } else {
-            document.getElementById('display-address').innerText = 'Please set your delivery address';
+            if (displayAddressEl) displayAddressEl.innerText = 'Please set your delivery address';
             document.getElementById('header-subtitle').innerText = '35-40 mins to Home | Set Address';
         }
 
@@ -1017,11 +1035,14 @@ onAuthStateChanged(auth, async (user) => {
                 // Fallback to Firestore default address if local storage is empty
                 if (!addressText && userData.addressLine) {
                     addressText = `${userData.addressLine}, ${userData.city || ''}, Assam - ${userData.zip || ''}`;
-                    document.getElementById('display-address').innerText = addressText;
+                    if (displayAddressEl) displayAddressEl.innerText = addressText;
                     document.getElementById('header-subtitle').innerText = "35-40 mins to Home | " + addressText;
-                    document.getElementById('address-input').value = userData.addressLine;
-                    if (userData.city) document.getElementById('city-input').value = userData.city;
-                    if (userData.zip) document.getElementById('zip-input').value = userData.zip;
+                    const addrInput = document.getElementById('address-input');
+                    if (addrInput) addrInput.value = userData.addressLine;
+                    const cityInput = document.getElementById('city-input');
+                    if (userData.city && cityInput) cityInput.value = userData.city;
+                    const zipInput = document.getElementById('zip-input');
+                    if (userData.zip && zipInput) zipInput.value = userData.zip;
                 }
 
                 // Fallback to Firestore default phone if local storage is empty
@@ -1053,6 +1074,9 @@ onAuthStateChanged(auth, async (user) => {
             window.lucide.createIcons();
         }
 
+        if (typeof window.initCheckoutMap === 'function') {
+            window.initCheckoutMap();
+        }
     } else {
         localStorage.setItem('didiTriggerLogin', 'true');
         window.location.href = 'index.html';
@@ -1157,22 +1181,22 @@ window.submitOrderDirect = async () => {
         const addressInput = document.getElementById('address-input').value.trim();
         const latInput = document.getElementById('lat-input').value;
         const lngInput = document.getElementById('lng-input').value;
-        
+
         if (!addressInput || !latInput || !lngInput) {
             showToast("Please pinpoint your exact delivery address on the map and provide address details.", "error");
             document.getElementById('address-input').focus();
             return;
         }
-        
+
         addressText = addressInput;
-        
+
         // Save back to profile automatically
         if (currentUser) {
             currentUser.address = addressText;
             currentUser.lat = Number(latInput);
             currentUser.lng = Number(lngInput);
             localStorage.setItem('didi_user', JSON.stringify(currentUser));
-            updateDoc(doc(db, "users", currentUser.uid), { address: addressText, lat: Number(latInput), lng: Number(lngInput) }).catch(e => console.error("Could not update user profile", e));
+            setDoc(doc(db, "users", currentUser.uid), { address: addressText, lat: Number(latInput), lng: Number(lngInput) }, { merge: true }).catch(e => console.error("Could not update user profile", e));
         }
 
         // Validate City and ZIP Code if restrictions are enabled
@@ -1181,20 +1205,22 @@ window.submitOrderDirect = async () => {
 
         if (currentStoreSettings.allowedCities && currentStoreSettings.allowedCities.trim() !== '') {
             const allowedCities = currentStoreSettings.allowedCities.split(',').map(c => c.trim().toLowerCase());
-            if (!userCity || !allowedCities.includes(userCity.toLowerCase())) {
+            const addressLower = (addressText || '').toLowerCase();
+            const hasAllowedCity = allowedCities.some(c => addressLower.includes(c));
+            if (!hasAllowedCity) {
                 showToast(`Delivery restricted! We currently only deliver to: ${currentStoreSettings.allowedCities}`, "error");
-                toggleAddressEdit();
-                if (document.getElementById('city-input')) document.getElementById('city-input').focus();
+                if (document.getElementById('address-input')) document.getElementById('address-input').focus();
                 return;
             }
         }
 
         if (currentStoreSettings.allowedZips && currentStoreSettings.allowedZips.trim() !== '') {
             const allowedZips = currentStoreSettings.allowedZips.split(',').map(z => z.trim());
-            if (!userZip || !allowedZips.includes(userZip)) {
-                showToast(`Delivery restricted! We do not deliver to ZIP code ${userZip || 'provided'}.`, "error");
-                toggleAddressEdit();
-                if (document.getElementById('zip-input')) document.getElementById('zip-input').focus();
+            const addressLower = (addressText || '').toLowerCase();
+            const hasAllowedZip = allowedZips.some(z => addressLower.includes(z));
+            if (!hasAllowedZip) {
+                showToast(`Delivery restricted! We do not deliver to ZIP code provided.`, "error");
+                if (document.getElementById('address-input')) document.getElementById('address-input').focus();
                 return;
             }
         }
@@ -1202,7 +1228,7 @@ window.submitOrderDirect = async () => {
 
     if (!phoneText || phoneText.includes('Loading') || !phoneText.trim()) {
         showToast("Please set and save your phone number first.", "error");
-        toggleContactEdit();
+        if (window.toggleContactEdit) window.toggleContactEdit();
         document.getElementById('phone-input').focus();
         return;
     }
@@ -1285,7 +1311,7 @@ window.submitOrderDirect = async () => {
             const docRef = await addDoc(collection(db, "orders"), orderData);
             sendTelegramNotification(orderData);
             const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
-            fetch(notifyUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
+            fetch(notifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
             // 2. Deduct wallet balance from user profile
             await consumeWalletEntries(currentUser.uid, walletAppliedAmount);
@@ -1315,7 +1341,7 @@ window.submitOrderDirect = async () => {
             const docRef = await addDoc(collection(db, "orders"), orderData);
             sendTelegramNotification(orderData);
             const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
-            fetch(notifyUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
+            fetch(notifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
             // Deduct wallet balance if any was applied
             if (walletAppliedAmount > 0) {
@@ -1345,7 +1371,7 @@ window.submitOrderDirect = async () => {
         let docRef;
         try {
             docRef = await addDoc(collection(db, "orders"), orderData);
-        } catch(err) {
+        } catch (err) {
             console.error(err);
             showToast("Failed to initiate order.", "error");
             submitBtn.innerHTML = oldText;
@@ -1371,9 +1397,10 @@ window.submitOrderDirect = async () => {
 
                     // 1. Call Vercel Backend to Capture the Payment securely
                     const token = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
-                    const captureRes = await fetch('/api/verify-payment', {
+                    const verifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/verify-payment' : '/api/verify-payment';
+                    const captureRes = await fetch(verifyUrl, {
                         method: 'POST',
-                        headers: { 
+                        headers: {
                             'Content-Type': 'application/json',
                             'Authorization': token ? `Bearer ${token}` : ''
                         },
@@ -1391,13 +1418,13 @@ window.submitOrderDirect = async () => {
 
                     // 2. Save to Firestore only if capture was successful
                     showToast("Payment Captured! Confirming order...", "success");
-                    
+
                     const captureTime = new Date().toISOString();
                     orderData.paymentId = paymentId;
                     orderData.paymentMethod = 'Online (Razorpay)';
                     orderData.status = 'Pending';
                     orderData.statusTimestamps['Pending'] = captureTime;
-                    
+
                     await setDoc(docRef, {
                         paymentId: paymentId,
                         paymentMethod: 'Online (Razorpay)',
@@ -1407,7 +1434,7 @@ window.submitOrderDirect = async () => {
 
                     sendTelegramNotification(orderData);
                     const notifyUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'https://didisbiryani.in/api/notify-admin' : '/api/notify-admin';
-                    fetch(notifyUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
+                    fetch(notifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: docRef.id }) }).catch(console.error);
 
                     // Deduct wallet balance if any was applied
                     if (walletAppliedAmount > 0) {
@@ -1431,22 +1458,7 @@ window.submitOrderDirect = async () => {
             "prefill": {
                 "name": typeof nameText !== 'undefined' ? nameText : "",
                 "email": (typeof currentUser !== 'undefined' && currentUser && currentUser.email) ? currentUser.email : "customer@example.com",
-                "contact": typeof phoneText !== 'undefined' ? phoneText : "",
-                "method": "upi"
-            },
-            "config": {
-                "display": {
-                    "hide": [
-                        { "method": "card" },
-                        { "method": "netbanking" },
-                        { "method": "wallet" },
-                        { "method": "emi" },
-                        { "method": "paylater" }
-                    ],
-                    "preferences": {
-                        "show_default_blocks": true
-                    }
-                }
+                "contact": typeof phoneText !== 'undefined' ? phoneText : ""
             },
             "theme": {
                 "color": "#D4A017"

@@ -18,7 +18,7 @@ service cloud.firestore {
         (request.auth.token.email == 'didisbiryani@gmail.com' || request.auth.token.email == 'admin@gmail.com') ||
         (
           request.resource.data.userId == request.auth.uid &&
-          (!('status' in request.resource.data) || request.resource.data.status == 'Pending') &&
+          (!('status' in request.resource.data) || request.resource.data.status == 'Pending' || request.resource.data.status == 'Payment Pending') &&
           (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus == 'Pending') &&
           (!('isManual' in request.resource.data) || request.resource.data.isManual == false)
         )

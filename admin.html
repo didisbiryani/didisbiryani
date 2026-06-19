@@ -4705,11 +4705,25 @@
           <div>
             <label
               class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5"
-              >Delivery Address</label
+              >Delivery Location & Address</label
             >
+            
+            <input type="text" id="admin-map-search-input" placeholder="Search for area, street name..." class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-2 mb-2 focus:outline-none focus:border-brand-gold text-sm">
+            
+            <div class="relative w-full h-48 rounded-xl overflow-hidden border border-white/10 mb-2">
+                <div id="admin-edit-map" class="w-full h-full"></div>
+                <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <i data-lucide="map-pin" class="w-8 h-8 text-brand-red animate-bounce fill-brand-red" style="padding-bottom: 16px;"></i>
+                </div>
+            </div>
+            
+            <input type="hidden" id="admin-edit-lat">
+            <input type="hidden" id="admin-edit-lng">
+
             <textarea
               id="edit-order-address"
               rows="3"
+              placeholder="House No., Building Name, Landmark..."
               class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-brand-gold text-sm"
             ></textarea>
           </div>
