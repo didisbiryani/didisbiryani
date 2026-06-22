@@ -392,7 +392,7 @@ window.handleNativeGoogleSignIn = async (idToken) => {
 };
 
 window.handleNativeGoogleSignInError = (errorMsg) => {
-    showToast("Google Sign-In cancelled or failed", "error");
+    showToast("Google Sign-In cancelled or failed (Code: " + errorMsg + ")", "error");
     console.warn("Google Sign-In failed: " + errorMsg);
 };
 
