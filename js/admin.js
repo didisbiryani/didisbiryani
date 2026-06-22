@@ -9,17 +9,116 @@ const ADMIN_EMAILS = [
     'admin@gmail.com'
 ];
 
-onAuthStateChanged(auth, (user) => {
+let currentUserRole = null;
+let currentTeamMembers = [];
+let editingEmail = null;
+
+onAuthStateChanged(auth, async (user) => {
     const loginOverlay = document.getElementById('admin-login-overlay');
     if (loginOverlay) {
         if (!user) {
             // Not logged in -> Show login screen
             loginOverlay.classList.remove('hidden');
         } else {
-            // Logged in -> Check if they are an admin
-            if (ADMIN_EMAILS.includes(user.email)) {
-                // They are an admin -> Hide login screen and let dashboard load
+            // Logged in -> Check their role dynamically
+            let isAllowed = false;
+            let role = 'none';
+            let allowedTabs = [];
+            const userEmail = user.email ? user.email.toLowerCase() : '';
+
+            if (ADMIN_EMAILS.includes(userEmail)) {
+                isAllowed = true;
+                role = 'super_admin';
+                allowedTabs = [
+                    "dashboard", "manual-order", "manage-menu", "menu", "orders", "order-details",
+                    "order-history", "customers", "messages", "restaurants", "delivery-boys",
+                    "wallet", "coupons", "storefront", "settings", "broadcast", "team"
+                ];
+            } else {
+                try {
+                    const memberDoc = await getDoc(doc(db, "team_members", userEmail));
+                    if (memberDoc.exists()) {
+                        isAllowed = true;
+                        const data = memberDoc.data();
+                        role = data.role || 'custom';
+                        if (role === 'order_manager') {
+                            allowedTabs = ['orders', 'order-details', 'messages', 'delivery-boys'];
+                        } else {
+                            allowedTabs = data.allowedTabs || [];
+                        }
+                    }
+                } catch(e) {
+                    console.error("Error fetching team role:", e);
+                }
+            }
+
+            if (isAllowed) {
+                currentUserRole = role;
+                window.currentUserPermissions = allowedTabs;
                 loginOverlay.classList.add('hidden');
+                
+                // Hide navigation tabs that are not allowed
+                const ALL_TABS = [
+                    "dashboard",
+                    "manual-order",
+                    "manage-menu",
+                    "menu",
+                    "orders",
+                    "order-history",
+                    "customers",
+                    "messages",
+                    "restaurants",
+                    "delivery-boys",
+                    "wallet",
+                    "coupons",
+                    "storefront",
+                    "settings",
+                    "broadcast",
+                    "team"
+                ];
+                
+                ALL_TABS.forEach(tabId => {
+                    const navBtn = document.getElementById("nav-" + tabId);
+                    if (navBtn) {
+                        if (role === 'super_admin' || allowedTabs.includes(tabId)) {
+                            navBtn.style.display = '';
+                        } else {
+                            navBtn.style.display = 'none';
+                        }
+                    }
+                });
+
+                if (role !== 'super_admin') {
+                    // Hide any other elements specifically tagged for super admins
+                    const restrictedElements = document.querySelectorAll('[data-role="super_admin"]');
+                    restrictedElements.forEach(el => {
+                        if (!el.id || !el.id.startsWith('nav-')) {
+                            el.style.display = 'none';
+                        }
+                    });
+                    
+                    // Switch to the first allowed tab (excluding order-details)
+                    const firstAllowed = ALL_TABS.find(t => t !== 'order-details' && allowedTabs.includes(t));
+                    if (firstAllowed) {
+                        if(typeof switchTab === 'function') switchTab(firstAllowed);
+                    } else {
+                        // Display error if no permissions assigned
+                        document.body.innerHTML = `
+                            <div class="h-screen w-screen bg-[#0a0a0a] flex items-center justify-center p-6 text-center">
+                                <div>
+                                    <h1 class="text-2xl font-black text-brand-white mb-2">No Tabs Assigned</h1>
+                                    <p class="text-brand-white/50 text-sm mb-4">You have admin panel access but no tabs have been assigned to your role yet.</p>
+                                    <button id="no-access-logout-btn" class="px-6 py-2.5 bg-brand-gold text-brand-black font-bold rounded-xl hover:bg-white transition-colors">Logout</button>
+                                </div>
+                            </div>
+                        `;
+                        const btn = document.getElementById('no-access-logout-btn');
+                        if (btn) btn.addEventListener('click', () => signOut(auth));
+                    }
+                } else {
+                    // For super admins, load team members
+                    if(typeof loadTeamMembers === 'function') loadTeamMembers();
+                }
             } else {
                 // They are NOT an admin -> Kick them out
                 alert("Access Denied: Your email address does not have Admin privileges.");
@@ -29,6 +128,254 @@ onAuthStateChanged(auth, (user) => {
         }
     }
 });
+
+// --- Team Management Functions ---
+window.loadTeamMembers = async () => {
+    if (currentUserRole !== 'super_admin') return;
+    try {
+        const snap = await getDocs(collection(db, "team_members"));
+        currentTeamMembers = [];
+        snap.forEach(doc => {
+            currentTeamMembers.push({ id: doc.id, ...doc.data() });
+        });
+        renderTeamMembers();
+    } catch(e) {
+        console.error("Error loading team:", e);
+    }
+};
+
+window.renderTeamMembers = () => {
+    const list = document.getElementById('team-members-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    if (currentTeamMembers.length === 0) {
+        list.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-sm text-brand-white/50 italic">No extra team members found.</td></tr>`;
+        return;
+    }
+    
+    currentTeamMembers.forEach(m => {
+        let roleDisplay = '';
+        if (m.role === 'super_admin') {
+            roleDisplay = `<span class="px-2 py-1 rounded text-xs font-bold uppercase tracking-wider border bg-red-500/20 text-red-500 border-red-500/30">Super Admin</span>`;
+        } else {
+            const tabsList = m.allowedTabs ? m.allowedTabs.filter(t => t !== 'order-details').map(t => {
+                const mapping = {
+                    'dashboard': 'Dashboard',
+                    'manual-order': 'Manual Order',
+                    'manage-menu': 'Categories',
+                    'menu': 'Menu',
+                    'orders': 'Orders',
+                    'order-history': 'History',
+                    'customers': 'Customers',
+                    'messages': 'Chats',
+                    'restaurants': 'Outlets',
+                    'delivery-boys': 'Delivery',
+                    'wallet': 'Wallet',
+                    'coupons': 'Coupons',
+                    'storefront': 'Storefront',
+                    'broadcast': 'Broadcast',
+                    'settings': 'Settings',
+                    'team': 'Team'
+                };
+                return mapping[t] || t;
+            }).join(', ') : 'No Tabs';
+            roleDisplay = `
+                <div class="flex flex-col gap-1">
+                    <span class="px-2 py-0.5 w-max rounded text-[10px] font-bold uppercase tracking-wider border bg-blue-500/20 text-blue-500 border-blue-500/30">Custom Access</span>
+                    <span class="text-xs text-brand-white/60 font-medium max-w-[280px] block truncate" title="${tabsList}">${tabsList}</span>
+                </div>
+            `;
+        }
+        
+        list.innerHTML += `
+            <tr class="hover:bg-white/5 transition-colors group">
+                <td class="p-4 text-sm font-bold text-brand-white">${m.id}</td>
+                <td class="p-4">
+                    ${roleDisplay}
+                </td>
+                <td class="p-4 text-right space-x-2">
+                    <button onclick="window.openEditTeamModal('${m.id}')" class="px-3 py-1.5 bg-brand-gold/10 text-brand-gold rounded text-xs font-bold hover:bg-brand-gold hover:text-black transition-colors border border-brand-gold/20">
+                        Edit
+                    </button>
+                    <button onclick="window.removeTeamMember('${m.id}')" class="px-3 py-1.5 bg-red-500/20 text-red-500 rounded text-xs font-bold hover:bg-red-500 hover:text-white transition-colors border border-red-500/30">
+                        Remove
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.handleRoleChange = () => {
+    const roleSelect = document.getElementById('team-new-role');
+    const container = document.getElementById('permissions-container');
+    if (roleSelect && container) {
+        if (roleSelect.value === 'super_admin') {
+            container.classList.add('hidden');
+        } else {
+            container.classList.remove('hidden');
+        }
+    }
+};
+
+window.openEditTeamModal = (email) => {
+    const member = currentTeamMembers.find(m => m.id === email);
+    if (!member) return;
+    
+    editingEmail = email;
+    
+    const modal = document.getElementById('add-team-modal');
+    if (!modal) return;
+    
+    const title = modal.querySelector('h3');
+    const emailInput = document.getElementById('team-new-email');
+    const roleSelect = document.getElementById('team-new-role');
+    const submitBtn = modal.querySelector('button[type="submit"]');
+    
+    if (title) title.innerText = "Edit Team Member";
+    if (emailInput) {
+        emailInput.value = email;
+        emailInput.readOnly = true;
+        emailInput.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    if (roleSelect) {
+        roleSelect.value = member.role || 'custom';
+    }
+    
+    // Reset and select checkboxes
+    const checkboxes = document.querySelectorAll('input[name="team-permissions"]');
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+    });
+    
+    if (member.allowedTabs) {
+        member.allowedTabs.forEach(tabId => {
+            const cb = Array.from(checkboxes).find(c => c.value === tabId);
+            if (cb) cb.checked = true;
+        });
+    }
+    
+    window.handleRoleChange();
+    if (submitBtn) submitBtn.innerText = "Save Changes";
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+window.openAddTeamModal = () => {
+    editingEmail = null;
+    const modal = document.getElementById('add-team-modal');
+    if (modal) {
+        // Reset form inputs
+        const form = document.getElementById('add-team-form');
+        if (form) form.reset();
+        
+        // Restore modal to "Add" state
+        const title = modal.querySelector('h3');
+        if (title) title.innerText = "Add Team Member";
+        const emailInput = document.getElementById('team-new-email');
+        if (emailInput) {
+            emailInput.readOnly = false;
+            emailInput.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+        const submitBtn = modal.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.innerText = "Add Member";
+        
+        // Default to custom access and trigger toggle
+        const roleSelect = document.getElementById('team-new-role');
+        if (roleSelect) {
+            roleSelect.value = 'custom';
+        }
+        
+        // Uncheck all permissions (except default ones like orders/messages)
+        const checkboxes = document.querySelectorAll('input[name="team-permissions"]');
+        checkboxes.forEach(cb => {
+            cb.checked = (cb.value === 'orders' || cb.value === 'messages');
+        });
+        
+        window.handleRoleChange();
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeAddTeamModal = () => {
+    editingEmail = null;
+    const modal = document.getElementById('add-team-modal');
+    if (modal) {
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+    const form = document.getElementById('add-team-form');
+    if(form) form.reset();
+};
+
+window.handleAddTeamMember = async (e) => {
+    e.preventDefault();
+    if (currentUserRole !== 'super_admin') return;
+    
+    const email = document.getElementById('team-new-email').value.trim().toLowerCase();
+    const role = document.getElementById('team-new-role').value;
+    
+    if (!email) {
+        if(window.showToast) window.showToast("Enter a valid email", "error");
+        return;
+    }
+    
+    if (ADMIN_EMAILS.includes(email) && !editingEmail) {
+        if(window.showToast) window.showToast("This is a core admin email.", "error");
+        return;
+    }
+    
+    let allowedTabs = [];
+    if (role === 'super_admin') {
+        allowedTabs = [
+            "dashboard", "manual-order", "manage-menu", "menu", "orders", "order-details",
+            "order-history", "customers", "messages", "restaurants", "delivery-boys",
+            "wallet", "coupons", "storefront", "settings", "broadcast", "team"
+        ];
+    } else {
+        const checkboxes = document.querySelectorAll('input[name="team-permissions"]:checked');
+        checkboxes.forEach(cb => {
+            allowedTabs.push(cb.value);
+        });
+        if (allowedTabs.includes('orders') && !allowedTabs.includes('order-details')) {
+            allowedTabs.push('order-details');
+        }
+    }
+    
+    try {
+        const isEdit = !!editingEmail;
+        await setDoc(doc(db, "team_members", email), { 
+            role: role, 
+            allowedTabs: allowedTabs,
+            ...(isEdit ? { updatedAt: new Date().toISOString() } : { addedAt: new Date().toISOString() })
+        }, { merge: true });
+        
+        if(window.showToast) window.showToast(isEdit ? "Permissions updated!" : "Team member added!", "success");
+        window.closeAddTeamModal();
+        window.loadTeamMembers();
+    } catch(err) {
+        console.error("Error saving team member:", err);
+        if(window.showToast) window.showToast("Failed to save member.", "error");
+    }
+};
+
+window.removeTeamMember = async (email) => {
+    if (currentUserRole !== 'super_admin') return;
+    if (confirm(`Remove access for ${email}?`)) {
+        try {
+            await deleteDoc(doc(db, "team_members", email));
+            if(window.showToast) window.showToast("Team member removed.", "success");
+            window.loadTeamMembers();
+        } catch(err) {
+            console.error("Error removing:", err);
+            if(window.showToast) window.showToast("Failed to remove.", "error");
+        }
+    }
+};
 
 import { signInWithEmailAndPassword, provider, signInWithGoogle, getRedirectResult, signOut } from './firebase-config.js';
 
@@ -444,7 +791,9 @@ function renderDashboardHome() {
     let pendingCount = 0;
 
     todayOrders.forEach(o => {
-        revenue += Number(o.total || 0);
+        if (['Delivered', 'Collected', 'Accepted', 'Cooking', 'Ready for Delivery', 'Ready to Collect', 'Out for Delivery'].includes(o.status)) {
+            revenue += Number(o.total || 0);
+        }
         if (o.status === 'Pending') pendingCount++;
     });
 
@@ -3089,7 +3438,9 @@ window.renderOrderHistory = () => {
     let totalRevenue = 0;
     let deliveredCount = 0;
     orders.forEach(o => {
-        totalRevenue += Number(o.total || 0);
+        if (['Delivered', 'Collected', 'Accepted', 'Cooking', 'Ready for Delivery', 'Ready to Collect', 'Out for Delivery'].includes(o.status)) {
+            totalRevenue += Number(o.total || 0);
+        }
         if (o.status === 'Delivered' || o.status === 'Collected') deliveredCount++;
     });
 

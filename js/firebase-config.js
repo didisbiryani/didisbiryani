@@ -20,7 +20,12 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const functions = getFunctions(app);
-const messaging = getMessaging(app);
+let messaging = null;
+try {
+  messaging = getMessaging(app);
+} catch (e) {
+  console.log("Firebase Messaging not supported in this browser environment.", e);
+}
 
 // Smart Auth Helper: Popups are blocked by default on iOS Safari / Mobile.
 // Fallback gracefully from popup to redirect if popup blocker or cross-window tracking blocks popups.

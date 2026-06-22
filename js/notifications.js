@@ -16,8 +16,8 @@ function showNotification(message, type = "info") {
 
 async function requestPushPermission(user) {
     try {
-        if (!('serviceWorker' in navigator)) {
-            console.log('Service workers are not supported.');
+        if (!messaging || !('serviceWorker' in navigator)) {
+            console.log('Push messaging or Service workers are not supported.');
             return;
         }
 
