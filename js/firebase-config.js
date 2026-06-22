@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getFirestore, collection, addDoc, getDocs, getDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc, query, where, increment, runTransaction, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCredential } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
+import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBzePsRjC7pvnLQNxqUhHI5tuTndc9ggek",
@@ -22,7 +22,11 @@ const provider = new GoogleAuthProvider();
 const functions = getFunctions(app);
 let messaging = null;
 try {
-  messaging = getMessaging(app);
+  if (await isSupported()) {
+    messaging = getMessaging(app);
+  } else {
+    console.log("Firebase Messaging is not supported on this device/browser.");
+  }
 } catch (e) {
   console.log("Firebase Messaging not supported in this browser environment.", e);
 }
@@ -41,4 +45,4 @@ const signInWithGoogle = async (auth, provider) => {
   }
 };
 
-export { db, auth, provider, signInWithPopup, signInWithGoogle, getRedirectResult, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCredential, collection, addDoc, getDocs, getDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc, query, where, increment, runTransaction, arrayUnion, functions, httpsCallable, messaging, getToken, onMessage };
+export { db, auth, provider, GoogleAuthProvider, signInWithPopup, signInWithGoogle, getRedirectResult, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCredential, collection, addDoc, getDocs, getDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc, query, where, increment, runTransaction, arrayUnion, functions, httpsCallable, messaging, getToken, onMessage };

@@ -377,7 +377,24 @@ window.removeTeamMember = async (email) => {
     }
 };
 
-import { signInWithEmailAndPassword, provider, signInWithGoogle, getRedirectResult, signOut } from './firebase-config.js';
+import { signInWithEmailAndPassword, provider, signInWithGoogle, getRedirectResult, signOut, GoogleAuthProvider, signInWithCredential } from './firebase-config.js';
+
+// Expose native Google Sign-In handlers for Android App WebView integration
+window.handleNativeGoogleSignIn = async (idToken) => {
+    try {
+        const credential = GoogleAuthProvider.credential(null, idToken);
+        const result = await signInWithCredential(auth, credential);
+        showToast("Logged in with Google natively!", "success");
+    } catch(e) {
+        console.error("Native login failed", e);
+        alert("Native login failed: " + e.message);
+    }
+};
+
+window.handleNativeGoogleSignInError = (errorMsg) => {
+    showToast("Google Sign-In cancelled or failed", "error");
+    console.warn("Google Sign-In failed: " + errorMsg);
+};
 
 // Consume Google Redirect Sign-In result on Mobile/iOS Safari load
 try {
@@ -410,6 +427,11 @@ window.handleAdminEmailLogin = async () => {
 
 window.handleAdminGoogleLogin = async () => {
     try {
+        // Native Google Sign-In bridge check for Android WebView
+        if (window.AndroidBridge && typeof window.AndroidBridge.startGoogleSignIn === 'function') {
+            window.AndroidBridge.startGoogleSignIn();
+            return;
+        }
         await signInWithGoogle(auth, provider);
         showToast("Logged in with Google successfully!", "success");
     } catch (err) {
