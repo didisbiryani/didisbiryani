@@ -21,15 +21,19 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const functions = getFunctions(app);
 let messaging = null;
-try {
-  if (await isSupported()) {
-    messaging = getMessaging(app);
+isSupported().then(supported => {
+  if (supported) {
+    try {
+      messaging = getMessaging(app);
+    } catch (e) {
+      console.log("Firebase Messaging not supported in this browser environment.", e);
+    }
   } else {
     console.log("Firebase Messaging is not supported on this device/browser.");
   }
-} catch (e) {
-  console.log("Firebase Messaging not supported in this browser environment.", e);
-}
+}).catch(err => {
+  console.log("Error checking Firebase Messaging support:", err);
+});
 
 // Smart Auth Helper: Popups are blocked by default on iOS Safari / Mobile.
 // Fallback gracefully from popup to redirect if popup blocker or cross-window tracking blocks popups.
