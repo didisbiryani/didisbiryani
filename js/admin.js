@@ -382,12 +382,16 @@ import { signInWithEmailAndPassword, provider, signInWithGoogle, getRedirectResu
 // Expose native Google Sign-In handlers for Android App WebView integration
 window.handleNativeGoogleSignIn = async (idToken) => {
     try {
-        const credential = GoogleAuthProvider.credential(null, idToken);
+        const credential = GoogleAuthProvider.credential(idToken);
         const result = await signInWithCredential(auth, credential);
         showToast("Logged in with Google natively!", "success");
     } catch(e) {
         console.error("Native login failed", e);
-        alert("Native login failed: " + e.message);
+        if (typeof showToast === "function") {
+            showToast("Native login failed: " + e.message, "error");
+        } else {
+            alert("Native login failed: " + e.message);
+        }
     }
 };
 
