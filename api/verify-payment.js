@@ -75,7 +75,7 @@ export default async function handler(req, res) {
         // 2. Check if payment is actually captured/authorized
         const isPaymentValid = paymentData.status === 'captured' || paymentData.status === 'authorized';
 
-        if (!isPaymentValid && amount) {
+        if (paymentData.status === 'authorized' && amount) {
             // Try to capture it if it's authorized but not captured
             try {
                 const amountInPaise = typeof amount === 'number' ? amount : Math.round(Number(amount) * 100);
