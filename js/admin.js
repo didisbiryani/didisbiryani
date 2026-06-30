@@ -116,8 +116,9 @@ onAuthStateChanged(auth, async (user) => {
                         if (btn) btn.addEventListener('click', () => signOut(auth));
                     }
                 } else {
-                    // For super admins, load team members
+                    // For super admins, load team members and set default tab
                     if(typeof loadTeamMembers === 'function') loadTeamMembers();
+                    if(typeof switchTab === 'function') switchTab('dashboard');
                 }
             } else {
                 // They are NOT an admin -> Kick them out
@@ -1692,7 +1693,7 @@ window.renderAdminCustomers = function renderAdminCustomers() {
 }
 
 window.closeCustomerDetailsModal = () => {
-    document.getElementById('customer-details-modal').classList.add('hidden');
+    window.hideModal('customer-details-modal');
 };
 
 window.openCustomerDetailsModal = (userId) => {
@@ -1846,7 +1847,7 @@ window.openCustomerDetailsModal = (userId) => {
     }
 
     if (window.lucide) lucide.createIcons();
-    document.getElementById('customer-details-modal').classList.remove('hidden');
+    window.showModal('customer-details-modal');
 };
 
 // --- Messages Logic ---
@@ -2567,6 +2568,11 @@ onSnapshot(recentOrdersQuery, (snap) => {
 
     // Sort orders by timestamp descending (newest first)
     allOrders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    window.allOrders = allOrders;
+    if (typeof window.updateNotificationsDropdown === 'function') {
+        window.updateNotificationsDropdown();
+    }
 
     renderAdminOrders();
     renderAdminCustomers();

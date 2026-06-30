@@ -23,6 +23,16 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
+    <style>
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.15s ease-out forwards;
+      }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDac0HRwWL2pvJZCO3TOE6rwwl_FuYpfbc&libraries=places"></script>
 
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
@@ -396,30 +406,59 @@
             class="flex items-center gap-3 sm:gap-4 text-brand-white/60 border-r border-white/10 pr-4 sm:pr-6"
           >
             <button
-              class="hidden sm:block hover:text-brand-gold transition-colors"
+              onclick="window.open('index.html', '_blank')"
+              class="hidden sm:block hover:text-brand-gold transition-colors focus:outline-none"
+              title="View Storefront"
             >
               <i data-lucide="globe" class="w-5 h-5"></i>
             </button>
             <button
-              class="hidden sm:block hover:text-brand-gold transition-colors"
+              onclick="toggleFullScreen()"
+              class="hidden sm:block hover:text-brand-gold transition-colors focus:outline-none"
+              title="Toggle Fullscreen"
             >
               <i data-lucide="maximize" class="w-5 h-5"></i>
             </button>
             <button
-              class="hidden sm:block hover:text-brand-gold transition-colors"
+              onclick="switchTab('settings')"
+              class="hidden sm:block hover:text-brand-gold transition-colors focus:outline-none"
+              title="Settings"
             >
               <i data-lucide="settings" class="w-5 h-5"></i>
             </button>
-            <button class="relative hover:text-brand-gold transition-colors">
-              <i data-lucide="bell" class="w-5 h-5"></i>
-              <span
-                class="absolute -top-1 -right-1 w-3 h-3 bg-brand-gold rounded-full border-2 border-[#111]"
-              ></span>
-            </button>
+            <div class="relative">
+              <button
+                id="notifications-btn"
+                onclick="toggleNotificationsDropdown(event)"
+                class="relative hover:text-brand-gold transition-colors focus:outline-none"
+                title="Notifications"
+              >
+                <i data-lucide="bell" class="w-5 h-5"></i>
+                <span
+                  id="notifications-badge"
+                  class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-brand-gold text-brand-black text-[9px] font-black rounded-full border border-[#111] flex items-center justify-center hidden animate-pulse"
+                >0</span>
+              </button>
+              
+              <!-- Notifications Dropdown Menu -->
+              <div
+                id="notifications-dropdown"
+                onclick="event.stopPropagation()"
+                class="absolute right-0 mt-2 w-80 max-w-sm sm:w-80 bg-[#0a0a0add] backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden z-50 animate-fade-in"
+              >
+                <div class="px-4 py-3 border-b border-white/10 flex justify-between items-center bg-white/5">
+                  <span class="text-xs font-black text-brand-white uppercase tracking-wider">Live Activity</span>
+                  <span class="text-[10px] text-brand-gold cursor-pointer font-bold hover:underline" onclick="switchTab('orders'); document.getElementById('notifications-dropdown').classList.add('hidden');">View All Orders</span>
+                </div>
+                <div id="notifications-dropdown-list" class="max-h-80 overflow-y-auto divide-y divide-white/5">
+                  <div class="px-4 py-3 text-xs text-brand-white/50 italic text-center">Loading notifications...</div>
+                </div>
+              </div>
+            </div>
             <!-- Feed Toggle Button for Mobile -->
             <button
               onclick="toggleRightSidebar()"
-              class="xl:hidden relative hover:text-brand-gold transition-colors"
+              class="xl:hidden relative hover:text-brand-gold transition-colors focus:outline-none"
               title="Toggle Activity Feed"
             >
               <i data-lucide="activity" class="w-5 h-5"></i>
@@ -429,14 +468,47 @@
             </button>
           </div>
           <!-- Profile -->
-          <div class="flex items-center gap-3 cursor-pointer group">
-            <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
-              class="w-10 h-10 rounded-full border-2 border-transparent group-hover:border-brand-gold transition-colors bg-white/10"
-            />
-            <div class="hidden md:block">
-              <h4 class="text-sm font-bold text-brand-white">Admin</h4>
-              <p class="text-xs text-brand-white/50">Store Owner</p>
+          <div class="relative">
+            <div
+              id="profile-trigger"
+              onclick="toggleProfileDropdown(event)"
+              class="flex items-center gap-3 cursor-pointer group select-none"
+            >
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
+                class="w-10 h-10 rounded-full border-2 border-transparent group-hover:border-brand-gold transition-colors bg-white/10"
+              />
+              <div class="hidden md:block">
+                <h4 class="text-sm font-bold text-brand-white">Admin</h4>
+                <p class="text-xs text-brand-white/50">Store Owner</p>
+              </div>
+            </div>
+            
+            <!-- Profile Dropdown Menu -->
+            <div
+              id="profile-dropdown"
+              onclick="event.stopPropagation()"
+              class="absolute right-0 mt-2 w-48 bg-[#0a0a0add] backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl py-2 hidden z-50 animate-fade-in"
+            >
+              <button
+                onclick="switchTab('settings'); document.getElementById('profile-dropdown').classList.add('hidden');"
+                class="w-full text-left px-4 py-2.5 text-xs text-brand-white/70 hover:text-brand-gold hover:bg-white/5 transition-colors font-bold flex items-center gap-2"
+              >
+                <i data-lucide="settings" class="w-4 h-4"></i> Settings
+              </button>
+              <button
+                onclick="window.open('index.html', '_blank'); document.getElementById('profile-dropdown').classList.add('hidden');"
+                class="w-full text-left px-4 py-2.5 text-xs text-brand-white/70 hover:text-brand-gold hover:bg-white/5 transition-colors font-bold flex items-center gap-2"
+              >
+                <i data-lucide="globe" class="w-4 h-4"></i> View Storefront
+              </button>
+              <div class="border-t border-white/5 my-1"></div>
+              <button
+                onclick="handleLogout(); document.getElementById('profile-dropdown').classList.add('hidden');"
+                class="w-full text-left px-4 py-2.5 text-xs text-brand-red hover:bg-brand-red/10 transition-colors font-bold flex items-center gap-2"
+              >
+                <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+              </button>
             </div>
           </div>
         </div>
@@ -3670,6 +3742,107 @@
         }
       }
 
+      function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch((err) => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`);
+          });
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+      }
+
+      function toggleProfileDropdown(event) {
+        event.stopPropagation();
+        // Close notifications dropdown if open
+        const notifDropdown = document.getElementById("notifications-dropdown");
+        if (notifDropdown) notifDropdown.classList.add("hidden");
+
+        const dropdown = document.getElementById("profile-dropdown");
+        if (dropdown) {
+          dropdown.classList.toggle("hidden");
+          if (window.lucide) window.lucide.createIcons();
+        }
+      }
+
+      function toggleNotificationsDropdown(event) {
+        event.stopPropagation();
+        // Close profile dropdown if open
+        const profileDropdown = document.getElementById("profile-dropdown");
+        if (profileDropdown) profileDropdown.classList.add("hidden");
+
+        const dropdown = document.getElementById("notifications-dropdown");
+        if (dropdown) {
+          dropdown.classList.toggle("hidden");
+          if (!dropdown.classList.contains("hidden")) {
+            updateNotificationsDropdown();
+          }
+          if (window.lucide) window.lucide.createIcons();
+        }
+      }
+
+      function updateNotificationsDropdown() {
+        const listContainer = document.getElementById("notifications-dropdown-list");
+        const badge = document.getElementById("notifications-badge");
+        if (!window.allOrders) return;
+        
+        // Count pending orders
+        const pendingOrders = window.allOrders.filter(o => o.status === 'Pending');
+        if (badge) {
+          if (pendingOrders.length > 0) {
+            badge.innerText = pendingOrders.length;
+            badge.classList.remove("hidden");
+          } else {
+            badge.classList.add("hidden");
+          }
+        }
+        
+        if (!listContainer) return;
+        
+        // Get the latest 5 orders
+        const latestOrders = window.allOrders.slice(0, 5);
+        if (latestOrders.length === 0) {
+          listContainer.innerHTML = `<div class="px-4 py-3 text-xs text-brand-white/50 italic text-center">No new notifications</div>`;
+          return;
+        }
+        
+        listContainer.innerHTML = latestOrders.map(o => {
+          const orderNum = o.orderNumber ? String(o.orderNumber).padStart(5, '0') : o.id.substring(0, 6).toUpperCase();
+          const timeStr = new Date(o.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          let statusColor = 'text-brand-gold';
+          if (o.status === 'Delivered' || o.status === 'Collected') statusColor = 'text-green-500';
+          if (o.status === 'Rejected') statusColor = 'text-brand-red';
+          
+          return `
+            <div onclick="if(window.viewOrderDetails) { window.viewOrderDetails('${o.id}'); } document.getElementById('notifications-dropdown').classList.add('hidden');" class="px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer border-b border-white/5 last:border-0">
+              <div class="flex justify-between items-start mb-0.5">
+                <span class="text-xs font-bold text-brand-white">Order #${orderNum}</span>
+                <span class="text-[10px] text-brand-white/40">${timeStr}</span>
+              </div>
+              <p class="text-[11px] text-brand-white/60 truncate">${o.customer || 'Guest Customer'} — ${o.paymentMethod || 'Online'}</p>
+              <div class="flex justify-between items-center mt-1">
+                <span class="text-[10px] font-black text-brand-gold">₹${o.total}</span>
+                <span class="text-[10px] font-bold ${statusColor} uppercase">${o.status}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      window.updateNotificationsDropdown = updateNotificationsDropdown;
+
+      // Close dropdowns on click outside
+      document.addEventListener("click", () => {
+        const profileDropdown = document.getElementById("profile-dropdown");
+        if (profileDropdown) profileDropdown.classList.add("hidden");
+        
+        const notificationsDropdown = document.getElementById("notifications-dropdown");
+        if (notificationsDropdown) {
+          notificationsDropdown.classList.add("hidden");
+        }
+      });
+
       // Coupon UI Logic
       function toggleSpecificDish() {
         const type = document.getElementById("couponTargetType").value;
@@ -4678,6 +4851,18 @@
           <div>
             <label
               class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5"
+              >Delivery Location (Map)</label
+            >
+            <input type="text" id="admin-map-search-input" placeholder="Search for location..." class="w-full bg-black/50 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-brand-gold text-sm mb-2" />
+            <div id="admin-edit-map" class="w-full h-48 bg-black/50 border border-white/10 rounded-xl mb-2"></div>
+            <div class="flex gap-2">
+                <input type="text" id="admin-edit-lat" placeholder="Latitude" class="w-1/2 bg-black/50 border border-white/10 text-brand-white/50 rounded-xl px-4 py-2 focus:outline-none text-xs" readonly />
+                <input type="text" id="admin-edit-lng" placeholder="Longitude" class="w-1/2 bg-black/50 border border-white/10 text-brand-white/50 rounded-xl px-4 py-2 focus:outline-none text-xs" readonly />
+            </div>
+          </div>
+          <div>
+            <label
+              class="block text-[10px] font-bold text-brand-white/50 uppercase tracking-widest mb-1.5"
               >Delivery Notes</label
             >
             <textarea
@@ -5031,6 +5216,69 @@
             >
               Add to Order
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div
+      id="customer-details-modal"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4"
+    >
+      <div
+        class="glass border border-brand-gold/20 rounded-3xl w-full max-w-4xl overflow-hidden shadow-[0_0_50px_rgba(212, 160, 23,0.15)] animate-slide-up relative flex flex-col max-h-[90vh]"
+      >
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-gold to-transparent opacity-50"></div>
+
+        <!-- Header -->
+        <div class="p-6 border-b border-white/10 flex justify-between items-start bg-black/40 shrink-0">
+          <div class="flex items-center gap-4">
+            <div id="cd-avatar" class="w-14 h-14 rounded-full bg-brand-gold/20 text-brand-gold flex items-center justify-center font-black text-2xl border border-brand-gold/30">
+              C
+            </div>
+            <div>
+              <h3 id="cd-name" class="text-xl font-black text-brand-white tracking-wide">Customer Name</h3>
+              <p id="cd-contact" class="text-xs text-brand-white/50 mt-1">phone • email</p>
+              <p id="cd-since" class="text-[10px] text-brand-gold mt-1 font-bold">Customer Since: N/A</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <a id="cd-btn-whatsapp" target="_blank" class="p-2 bg-green-500/10 hover:bg-green-500/20 rounded-full text-green-500 transition-colors inline-flex items-center justify-center" title="WhatsApp Customer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            </a>
+            <button id="cd-btn-gift" class="p-2 bg-brand-gold/10 hover:bg-brand-gold/20 rounded-full text-brand-gold transition-colors inline-flex items-center justify-center" title="Gift Wallet">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-gift"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+            </button>
+            <button onclick="window.closeCustomerDetailsModal()" class="p-2 ml-2 bg-white/5 hover:bg-white/10 rounded-full text-brand-white/50 hover:text-white transition-colors inline-flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+          <!-- Quick Stats Grid -->
+          <div id="cd-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <!-- Populated via JS -->
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Favorite Items -->
+            <div class="bg-black/30 border border-white/5 rounded-2xl p-5">
+              <h4 class="text-xs font-bold text-brand-white/50 uppercase tracking-widest mb-4 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> Top Ordered Items</h4>
+              <div id="cd-favorite-items" class="space-y-3">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+
+            <!-- Order History -->
+            <div class="bg-black/30 border border-white/5 rounded-2xl p-5 flex flex-col h-full max-h-[400px]">
+              <h4 class="text-xs font-bold text-brand-white/50 uppercase tracking-widest mb-4 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg> Order History</h4>
+              <div id="cd-order-history" class="space-y-3 overflow-y-auto custom-scrollbar pr-2 flex-1">
+                <!-- Populated via JS -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
